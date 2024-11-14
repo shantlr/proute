@@ -5,6 +5,8 @@ export type EndpointModule = {
   id: string;
   method: Method;
   expressPath: string;
+
+  isFileEmpty: boolean;
 };
 export type MiddlewaresModule = {
   id: string;

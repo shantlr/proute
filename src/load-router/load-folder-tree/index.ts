@@ -51,6 +51,8 @@ async function loadDirectory(dir: string, rootDir): Promise<ModuleTreeNode> {
     }
 
     if (file.isFile()) {
+      const filePath = path.resolve(dir, file.name);
+      const s = await stat(filePath);
       const matched = file.name.match(FILE_REGEX);
       if (matched) {
         const moduleId = path.resolve(dir, file.name);
@@ -64,6 +66,7 @@ async function loadDirectory(dir: string, rootDir): Promise<ModuleTreeNode> {
             : {
                 type: 'endpoint',
                 id: moduleId,
+                isFileEmpty: s.size === 0,
                 expressPath: formatExpressEndpointPath(
                   path.relative(
                     rootDir,

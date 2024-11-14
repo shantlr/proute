@@ -20,18 +20,11 @@ export const endpointConf = <Conf extends AnyEndpointConf>(
   return conf;
 };
 
-export const createRoute = <Conf extends AnyEndpointConf>(
-  module: {
-    conf: Conf;
-    handler: EndpointHandler<Conf>;
-    errorHandler?: (error: unknown) => void;
-  },
-  {
-    middlewares = [],
-  }: {
-    middlewares?: unknown[];
-  } = {},
-): {
+export const createRoute = <Conf extends AnyEndpointConf>(module: {
+  conf: Conf;
+  handler: EndpointHandler<Conf>;
+  errorHandler?: (error: unknown) => void;
+}): {
   handler: RequestHandler;
 } => {
   const {
@@ -44,11 +37,20 @@ export const createRoute = <Conf extends AnyEndpointConf>(
   return {
     handler: async (req, res) => {
       try {
-        const result = await handler({
+        // const params = conf.route.middleware({
+        //   req,
+        //   res,
+        //   query: conf.query ? parse(conf.query, req.query) : {},
+        //   params: parse(conf.route.params, req.body),
+        // });
+        const params = {
           req,
           res,
+          query: conf.query ? parse(conf.query, req.query) : {},
           params: parse(conf.route.params, req.body),
-        });
+        };
+
+        const result = await handler(params);
         if (result && !res.headersSent) {
           res.status(result.status as number).send(result.data);
         }

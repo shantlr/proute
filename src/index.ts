@@ -11,3 +11,10 @@ export type {
 } from './create-endpoint/type';
 
 export type { Method } from './types';
+
+export {
+  createResourceMap,
+  createResource,
+  identity,
+  returnType,
+} from './resources';

@@ -10,6 +10,7 @@ import {
   generateBaseConf,
   GENERATED_BASE_CONF_HEADER,
 } from './generate-base-conf';
+import { generateDefaultEndpoints } from './generate-default-endpoints';
 
 type PluginOptions = {
   inputPath: string;
@@ -18,6 +19,7 @@ type PluginOptions = {
   outputBaseConf?: string;
 };
 type ResolvedOptions = PluginOptions & {
+  resourcesPath: string;
   outputRouter: string;
   outputBaseConf: string;
 };
@@ -36,7 +38,7 @@ const generate = async (options: ResolvedOptions) => {
 
   await Promise.all([
     // Generate base conf
-    generateBaseConf(router, options.outputBaseConf).then(async (code) => {
+    generateBaseConf(router, options).then(async (code) => {
       if (await isFileExists(options.outputBaseConf)) {
         const content = (await readFile(options.outputBaseConf)).toString();
         if (content.length && !content.startsWith(GENERATED_BASE_CONF_HEADER)) {
@@ -68,6 +70,9 @@ const generate = async (options: ResolvedOptions) => {
 
       await writeFile(options.outputRouter, code);
     }),
+
+    // Generate default endpoints
+    generateDefaultEndpoints(router, options),
   ]);
 };
 
@@ -84,6 +89,10 @@ const onFileChange = async (
 export const kamelVitePlugin = createVitePlugin((options: PluginOptions) => {
   const opt = {
     ...options,
+
+    resourcesPath:
+      options.resourcesPath || path.resolve(options.inputPath, 'resources.ts'),
+
     outputRouter:
       options.outputRouter || path.resolve(options.inputPath, 'index.ts'),
     outputBaseConf:
