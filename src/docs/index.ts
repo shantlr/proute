@@ -17,6 +17,7 @@ import { isResource } from '../resources';
 export const createOpenapiJson = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   specs: Record<string, any>,
+  resources: Record<string, any>,
   endpoints: {
     method: Method;
     path: string;
@@ -34,8 +35,26 @@ export const createOpenapiJson = (
     servers: specs.servers,
     tags: specs.tags,
     paths: {},
+    components: {
+      schemas: {},
+    },
   };
 
+  // Components
+  for (const [key, resource] of Object.entries(resources ?? {})) {
+    json.components.schemas[key] = mapSchemaToOpenapi(resource);
+  }
+
+  const resourceRefMap = Object.entries(resources ?? {}).reduce(
+    (acc, [key, schema]) => {
+      acc.set(schema, `#/components/schemas/${key}`);
+      return acc;
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    new Map<any, string>(),
+  );
+
+  // Paths
   for (const endpoint of endpoints) {
     if (isRouteEndpointModule(endpoint.module)) {
       const endpointPath = mapExpressPathToOpenapiPath(endpoint.path);
@@ -51,7 +70,10 @@ export const createOpenapiJson = (
           params: conf.route.params,
         }),
         requestBody: undefined,
-        responses: mapEndpointResponses({ responses: conf.responses }),
+        responses: mapEndpointResponses({
+          responses: conf.responses,
+          resourceRefMap,
+        }),
       };
     }
   }
@@ -65,8 +87,11 @@ export const mapExpressPathToOpenapiPath = (path: string) => {
 
 export const mapEndpointResponses = ({
   responses,
+  resourceRefMap,
 }: {
   responses: Record<number, GenericSchema>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  resourceRefMap: Map<any, string>;
 }) => {
   const res = {};
 
@@ -95,7 +120,7 @@ export const mapEndpointResponses = ({
       description: '',
       content: {
         'application/json': {
-          schema: mapSchemaToOpenapi(schema),
+          schema: mapSchemaToOpenapi(schema, resourceRefMap),
         },
       },
     };
@@ -126,7 +151,16 @@ export const mapEndpointParams = ({ params }: { params: GenericSchema }) => {
   return res;
 };
 
-export const mapSchemaToOpenapi = (schema: GenericSchema) => {
+export const mapSchemaToOpenapi = (
+  schema: GenericSchema,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  resourceRefMap: Map<any, string> = new Map(),
+) => {
+  if (resourceRefMap?.has(schema)) {
+    return {
+      $ref: resourceRefMap.get(schema),
+    };
+  }
   if (isStringSchema(schema)) {
     return {
       type: 'string',
@@ -140,7 +174,7 @@ export const mapSchemaToOpenapi = (schema: GenericSchema) => {
   if (isArraySchema(schema)) {
     return {
       type: 'array',
-      items: mapSchemaToOpenapi(schema.item),
+      items: mapSchemaToOpenapi(schema.item, resourceRefMap),
     };
   }
 
@@ -150,17 +184,17 @@ export const mapSchemaToOpenapi = (schema: GenericSchema) => {
       properties: Object.entries(
         schema.entries as Record<string, GenericSchema>,
       ).reduce((acc, [key, value]) => {
-        acc[key] = mapSchemaToOpenapi(value);
+        acc[key] = mapSchemaToOpenapi(value, resourceRefMap);
         return acc;
       }, {}),
     };
   }
   if (isResource(schema)) {
-    return mapSchemaToOpenapi(schema.output as GenericSchema);
+    return mapSchemaToOpenapi(schema.output as GenericSchema, resourceRefMap);
   }
   if (isNullableSchema(schema)) {
     const wrapped = unwrap(schema);
-    const inner = mapSchemaToOpenapi(wrapped);
+    const inner = mapSchemaToOpenapi(wrapped, resourceRefMap);
 
     inner.nullable = true;
     return inner;
@@ -178,7 +212,9 @@ export const mapSchemaToOpenapi = (schema: GenericSchema) => {
   }
   if (isUnionSchema(schema)) {
     return {
-      oneOf: schema.options.map(mapSchemaToOpenapi),
+      oneOf: schema.options.map((opt) =>
+        mapSchemaToOpenapi(opt, resourceRefMap),
+      ),
     };
   }
   if (isLiteralSchema(schema)) {
