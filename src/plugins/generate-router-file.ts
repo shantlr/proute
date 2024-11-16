@@ -76,7 +76,6 @@ export const generateRouterFile = async (
 
     if (docs.uiEnabled === undefined || docs.uiEnabled) {
       results.push(`router.get('${docs.uiEndpoint}', (req, res) => {`);
-      results.push(`  console.log([req.originalUrl, req.baseUrl, req.path]);`);
       results.push(
         `  const jsonEndpoint = req.baseUrl ? \`\${req.baseUrl}${jsonEndpoint}\` : '${jsonEndpoint}'`,
       );
