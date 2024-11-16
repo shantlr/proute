@@ -73,6 +73,29 @@ export const generateRouterFile = async (
     results.push(`router.get('${jsonEndpoint}', (req, res) => {`);
     results.push(`  res.json(openapiJson);`);
     results.push(`});`);
+
+    if (docs.uiEnabled === undefined || docs.uiEnabled) {
+      results.push(`router.get('${docs.uiEndpoint}', (req, res) => {`);
+      results.push(`  console.log([req.originalUrl, req.baseUrl, req.path]);`);
+      results.push(
+        `  const jsonEndpoint = req.baseUrl ? \`\${req.baseUrl}${jsonEndpoint}\` : '${jsonEndpoint}'`,
+      );
+      results.push(`  res.send(\``);
+      results.push(
+        `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <script type="module" src="https://unpkg.com/rapidoc/dist/rapidoc-min.js"></script>
+  </head>
+  <body>
+    <rapi-doc spec-url = "\${jsonEndpoint}"> </rapi-doc>
+  </body>
+</html>` + '`',
+      );
+      results.push(`  );`);
+      results.push('});');
+    }
   }
 
   results.push('', `export { router };`, '');
