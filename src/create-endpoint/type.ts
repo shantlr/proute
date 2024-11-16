@@ -15,6 +15,9 @@ export type EndpointConf<
   Body extends GenericSchema,
   Responses extends EndointResponses,
 > = {
+  summary?: string;
+  description?: string;
+  tags?: string[];
   route: Route;
   query?: QueryParams;
   body?: Body;

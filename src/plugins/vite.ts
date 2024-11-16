@@ -11,18 +11,7 @@ import {
   GENERATED_BASE_CONF_HEADER,
 } from './generate-base-conf';
 import { generateDefaultEndpoints } from './generate-default-endpoints';
-
-type PluginOptions = {
-  inputPath: string;
-  resourcesPath?: string;
-  outputRouter?: string;
-  outputBaseConf?: string;
-};
-type ResolvedOptions = PluginOptions & {
-  resourcesPath: string;
-  outputRouter: string;
-  outputBaseConf: string;
-};
+import { PluginOptions, ResolvedOptions } from './types';
 
 const isFileExists = async (filePath: string) => {
   try {
@@ -55,7 +44,7 @@ const generate = async (options: ResolvedOptions) => {
     }),
 
     // Generate router
-    generateRouterFile(router, options.outputRouter).then(async (code) => {
+    generateRouterFile(router, options).then(async (code) => {
       if (await isFileExists(options.outputRouter)) {
         const content = (await readFile(options.outputRouter)).toString();
         if (content.length && !content.startsWith(GENERATED_CODE_HEADER)) {

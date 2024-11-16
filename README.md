@@ -73,6 +73,8 @@ const conf = endpointConf({
 });
 
 const handler: EndpointHandler<typeof conf> = async ({
+  req,
+  res,
   query: { search, limit, offset },
 }) => {
   try {
@@ -124,12 +126,13 @@ export default defineConfig({
     prouteVitePlugin({
       inputPath: './src/router', // folder where you are residing your endpoints files
       outputRouter: './src/router/index.ts', // file where the router will be generated, default: `inputPath`/index.ts
-      outputBaseConf: './src/router/base-conf.ts', // file where utils will be generated, default `inputPath`/base-conf.ts
+      outputBaseConf: './src/router/base-conf.ts', // file where utils will be generated, default: `inputPath`/base-conf.ts
+      resourcesPath: './src/router/resources.ts', // file that exports resources schemas, default: `inputPath`/resources.ts
     }),
   ],
 });
 ```
 
-### File auto intializing
+## File auto intializing
 
 When the vite server is running, any empty endpoint file will be automatically initialized with a basic endpoint boilerplate

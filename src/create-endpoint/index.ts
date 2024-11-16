@@ -3,7 +3,12 @@ import { AnyEndpointConf, EndpointHandler } from './type';
 import { parse } from 'valibot';
 import { createResponseSchemaMapper } from '../resources';
 
-export const isRouteEndpointModule = (module: unknown) => {
+export const isRouteEndpointModule = (
+  module: unknown,
+): module is {
+  conf: AnyEndpointConf;
+  handler: EndpointHandler<AnyEndpointConf>;
+} => {
   return (
     !!module &&
     typeof module === 'object' &&

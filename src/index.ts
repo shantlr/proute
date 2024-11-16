@@ -15,3 +15,5 @@ export type { Method } from './types';
 export { createResourceMap, createResource } from './resources';
 
 export { identity, returnType, combineReturnTypes } from './resources/helpers';
+
+export { createOpenapiJson } from './docs';

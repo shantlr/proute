@@ -1,13 +1,12 @@
 import {
-  ArraySchema,
   BaseSchema,
   CustomIssue,
   GenericSchema,
   InferOutput,
-  ObjectSchema,
   OutputDataset,
 } from 'valibot';
 import { FlattenType } from '../ts-utils';
+import { isArraySchema, isObjectSchema } from '../utils/valibot';
 
 export type ResourceSchema<Input, Output> = BaseSchema<
   Input,
@@ -77,29 +76,6 @@ export const isResource = (
     schema['kind'] === 'schema' &&
     'type' in schema &&
     schema['type'] === 'proute/resource'
-  );
-};
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const isObjectSchema = (schema: unknown): schema is ObjectSchema<any, any> => {
-  return (
-    typeof schema === 'object' &&
-    schema !== null &&
-    'kind' in schema &&
-    schema.kind === 'schema' &&
-    'type' in schema &&
-    schema.type === 'object'
-  );
-};
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const isArraySchema = (schema: unknown): schema is ArraySchema<any, any> => {
-  return (
-    typeof schema === 'object' &&
-    schema !== null &&
-    'kind' in schema &&
-    schema.kind === 'schema' &&
-    'type' in schema &&
-    schema.type === 'array'
   );
 };
 
