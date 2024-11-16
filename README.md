@@ -144,7 +144,8 @@ import bodyParser from 'body-parser';
 import { router } from './src/router';
 const app = express();
 
-// NOTE: proute will not parse body by itself and expect you to use a middleware like 'body-parser' to handle that part
+// NOTE: proute will not parse body by itself and expect
+// you to use a middleware like 'body-parser' to handle that part
 app.use(bodyParser.json(), router);
 
 app.listen(3000);
