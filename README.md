@@ -34,6 +34,8 @@ src/router
 
 Each endpoint handler file should export as default an object containing a `conf` field that define the endpoint specs and a `handler` field that will handle the endpoint.
 
+Proute integrate with [valibot](https://valibot.dev/) for validation and typing
+
 ```ts
 // src/router/products/get.ts
 import { endpointConf, EndpointHandler } from 'proute';
