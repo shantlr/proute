@@ -133,6 +133,23 @@ export default defineConfig({
 });
 ```
 
+When vite-node server is started, the plugin will automatically generate a file at $inputPath which will export a `router`
+
+Which can then be used with express app
+
+```ts
+// src/index.ts
+import express from 'express';
+import bodyParser from 'body-parser';
+import { router } from './src/router';
+const app = express();
+
+// NOTE: proute will not parse body by itself and expect you to use a middleware like 'body-parser' to handle that part
+app.use(bodyParser.json(), router);
+
+app.listen(3000);
+```
+
 ## File auto intializing
 
 When the vite server is running, any empty endpoint file will be automatically initialized with a basic endpoint boilerplate
