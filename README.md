@@ -153,7 +153,7 @@ export default defineConfig({
     prouteVitePlugin({
       // ...
       docs: {
-        uiEndpoint: '/docs',
+        uiEndpoint: '/docs', // openapi ui using rapidocs
         jsonEndpoint: '/docs/openapi.json', // default: $uiEndpoint/openapi.json`
       },
     }),
