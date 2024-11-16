@@ -1,17 +1,30 @@
 import {
   ArraySchema,
+  BaseMetadata,
   BooleanSchema,
   DateSchema,
   DescriptionAction,
   GenericSchema,
+  InferInput,
   LiteralSchema,
   NullableSchema,
   NumberSchema,
   ObjectSchema,
+  OptionalSchema,
   SchemaWithPipe,
   StringSchema,
   UnionSchema,
 } from 'valibot';
+
+export type ExampleAction<TInput> = BaseMetadata<TInput> & {
+  example: TInput;
+};
+export const example = <TInput>(e: TInput): ExampleAction<TInput> => ({
+  kind: 'metadata',
+  type: 'proute/example',
+  reference: example,
+  example: e,
+});
 
 const createSchemaPredicate =
   <T>(schemaName: string, kind = 'schema') =>
@@ -45,6 +58,9 @@ export const isArraySchema =
 export const isNullableSchema =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   createSchemaPredicate<NullableSchema<any, any>>('nullable');
+export const isOptionalSchema =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  createSchemaPredicate<OptionalSchema<any, any>>('optional');
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const isDateSchema = createSchemaPredicate<DateSchema<any>>('date');
@@ -73,7 +89,12 @@ export const isWithPipeSchema = (
   );
 };
 
+export const isExampleAction = createSchemaPredicate<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ExampleAction<any>
+>('proute/example', 'metadata');
+
 export const isDescriptionAction = createSchemaPredicate<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   DescriptionAction<any, any>
->('description', 'action');
+>('description', 'metadata');

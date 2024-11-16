@@ -6,10 +6,12 @@ import {
   isBooleanSchema,
   isDateSchema,
   isDescriptionAction,
+  isExampleAction,
   isLiteralSchema,
   isNullableSchema,
   isNumberSchema,
   isObjectSchema,
+  isOptionalSchema,
   isStringSchema,
   isUnionSchema,
   isWithPipeSchema,
@@ -144,30 +146,24 @@ export const mapEndpointParams = ({
 
   if (isObjectSchema(params)) {
     for (const [key, fieldSchema] of Object.entries(params.entries)) {
-      if (isStringSchema(fieldSchema)) {
-        res.push({
-          name: key,
-          in: 'path',
-          required: true,
-          description: getSchemaDescription(fieldSchema),
-          schema: {
-            type: 'string',
-          },
-        });
-      }
+      res.push({
+        name: key,
+        in: 'path',
+        required: true,
+        description: getSchemaDescription(fieldSchema),
+        schema: mapSchemaToOpenapi(fieldSchema),
+      });
     }
   }
   if (isObjectSchema(query)) {
     for (const [key, fieldSchema] of Object.entries(query.entries)) {
-      if (isStringSchema(fieldSchema)) {
-        res.push({
-          name: key,
-          in: 'query',
-          required: true,
-          description: getSchemaDescription(fieldSchema),
-          schema: mapSchemaToOpenapi(fieldSchema),
-        });
-      }
+      res.push({
+        name: key,
+        in: 'query',
+        required: true,
+        description: getSchemaDescription(fieldSchema),
+        schema: mapSchemaToOpenapi(fieldSchema),
+      });
     }
   }
 
@@ -175,7 +171,7 @@ export const mapEndpointParams = ({
 };
 
 export const mapSchemaToOpenapi = (
-  schema: GenericSchema,
+  schema: unknown,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   resourceRefMap: Map<any, string> = new Map(),
 ) => {
@@ -187,17 +183,20 @@ export const mapSchemaToOpenapi = (
   if (isStringSchema(schema)) {
     return {
       type: 'string',
+      example: getSchemaExample(schema),
     };
   }
   if (isNumberSchema(schema)) {
     return {
       type: 'number',
+      example: getSchemaExample(schema),
     };
   }
   if (isArraySchema(schema)) {
     return {
       type: 'array',
       items: mapSchemaToOpenapi(schema.item, resourceRefMap),
+      example: getSchemaExample(schema),
     };
   }
 
@@ -210,6 +209,7 @@ export const mapSchemaToOpenapi = (
         acc[key] = mapSchemaToOpenapi(value, resourceRefMap);
         return acc;
       }, {}),
+      example: getSchemaExample(schema),
     };
   }
   if (isResource(schema)) {
@@ -222,15 +222,21 @@ export const mapSchemaToOpenapi = (
     inner.nullable = true;
     return inner;
   }
+  if (isOptionalSchema(schema)) {
+    const wrapped = unwrap(schema);
+    return mapSchemaToOpenapi(wrapped, resourceRefMap);
+  }
   if (isDateSchema(schema)) {
     return {
       type: 'string',
       format: 'date-time',
+      example: getSchemaExample(schema),
     };
   }
   if (isBooleanSchema(schema)) {
     return {
       type: 'boolean',
+      example: getSchemaExample(schema),
     };
   }
   if (isUnionSchema(schema)) {
@@ -238,19 +244,46 @@ export const mapSchemaToOpenapi = (
       oneOf: schema.options.map((opt) =>
         mapSchemaToOpenapi(opt, resourceRefMap),
       ),
+      example: getSchemaExample(schema),
     };
   }
   if (isLiteralSchema(schema)) {
     return {
       type: 'string',
       enum: [schema.literal],
+      example: getSchemaExample(schema),
     };
   }
 
   console.warn(`[proute-openapi] unhandled schema conversion`, schema);
 };
 
-export const getSchemaDescription = (schema: GenericSchema) => {
+export const getSchemaExample = (schema: unknown) => {
+  if (isOptionalSchema(schema) || isNullableSchema(schema)) {
+    return getSchemaExample(unwrap(schema));
+  }
+  let example = undefined;
+  if (isWithPipeSchema(schema)) {
+    for (const elem of schema.pipe) {
+      if (isExampleAction(elem)) {
+        if (example === undefined) {
+          example = elem.example;
+        } else if (Array.isArray(example)) {
+          example.push(elem.example);
+        } else {
+          example = [example, elem.example];
+        }
+      }
+    }
+  }
+
+  return example;
+};
+
+export const getSchemaDescription = (schema: unknown) => {
+  if (isOptionalSchema(schema) || isNullableSchema(schema)) {
+    return getSchemaDescription(unwrap(schema));
+  }
   if (isWithPipeSchema(schema)) {
     for (const elem of schema.pipe) {
       if (isDescriptionAction(elem)) {

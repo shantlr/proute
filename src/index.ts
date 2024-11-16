@@ -13,6 +13,7 @@ export type {
 export type { Method } from './types';
 
 export { createResourceMap, createResource } from './resources';
+export { example } from './utils/valibot';
 
 export { identity, returnType, combineReturnTypes } from './resources/helpers';
 
