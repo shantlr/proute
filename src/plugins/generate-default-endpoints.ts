@@ -16,7 +16,7 @@ export const generateDefaultEndpoints = async (
       }
 
       const lines: string[] = [];
-      lines.push(`import { endpointConf, EndpointHandler } from 'kamel';`);
+      lines.push(`import { endpointConf, EndpointHandler } from 'proute';`);
       lines.push(`import { object } from 'valibot';`);
       lines.push('');
       lines.push(

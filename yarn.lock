@@ -586,10 +586,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:16":
-  version: 16.18.119
-  resolution: "@types/node@npm:16.18.119"
-  checksum: 10c0/d4bfd72982325f0421adc1115ec5dd0b92af2163526217d43151a32cf37c7219eebbf0913a18bb613a9628b83e543f66f7d18251ec23dad92418e87d3d8dafee
+"@types/node@npm:18":
+  version: 18.19.64
+  resolution: "@types/node@npm:18.19.64"
+  dependencies:
+    undici-types: "npm:~5.26.4"
+  checksum: 10c0/a54009cd222f5751c903e5f4889a0f12e3d3755a1f87ce919455eeaf00a9ba0c9215c4a92bc3d8df585a894fa3e4cf218e5afccced355688624133e1a4b88235
   languageName: node
   linkType: hard
 
@@ -1784,28 +1786,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"kamel@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "kamel@workspace:."
-  dependencies:
-    "@eslint/js": "npm:^9.14.0"
-    "@types/debug": "npm:^4"
-    "@types/express": "npm:^5.0.0"
-    "@types/node": "npm:16"
-    debug: "npm:^4.3.7"
-    eslint: "npm:^9.14.0"
-    eslint-config-prettier: "npm:^9.1.0"
-    eslint-plugin-prettier: "npm:^5.2.1"
-    node: "npm:18"
-    prettier: "npm:^3.3.3"
-    typescript: "npm:^5.6.3"
-    typescript-eslint: "npm:^8.13.0"
-    unplugin: "npm:^1.15.0"
-    valibot: "npm:1.0.0-beta.3"
-    vitest: "npm:^2.1.4"
-  languageName: unknown
-  linkType: soft
-
 "keyv@npm:^4.5.4":
   version: 4.5.4
   resolution: "keyv@npm:4.5.4"
@@ -2253,6 +2233,28 @@ __metadata:
   languageName: node
   linkType: hard
 
+"proute@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "proute@workspace:."
+  dependencies:
+    "@eslint/js": "npm:^9.14.0"
+    "@types/debug": "npm:^4"
+    "@types/express": "npm:^5.0.0"
+    "@types/node": "npm:18"
+    debug: "npm:^4.3.7"
+    eslint: "npm:^9.14.0"
+    eslint-config-prettier: "npm:^9.1.0"
+    eslint-plugin-prettier: "npm:^5.2.1"
+    node: "npm:18"
+    prettier: "npm:^3.3.3"
+    typescript: "npm:^5.6.3"
+    typescript-eslint: "npm:^8.13.0"
+    unplugin: "npm:^1.15.0"
+    valibot: "npm:1.0.0-beta.3"
+    vitest: "npm:^2.1.4"
+  languageName: unknown
+  linkType: soft
+
 "punycode@npm:^2.1.0":
   version: 2.3.1
   resolution: "punycode@npm:2.3.1"
@@ -2664,6 +2666,13 @@ __metadata:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: 10c0/ac8307bb06bbfd08ae7137da740769b7d8c3ee5943188743bb622c621f8ad61d244767480f90fbd840277fbf152d8932aa20c33f867dea1bb5e79b187ca1a92f
+  languageName: node
+  linkType: hard
+
+"undici-types@npm:~5.26.4":
+  version: 5.26.5
+  resolution: "undici-types@npm:5.26.5"
+  checksum: 10c0/bb673d7876c2d411b6eb6c560e0c571eef4a01c1c19925175d16e3a30c4c428181fb8d7ae802a261f283e4166a0ac435e2f505743aa9e45d893f9a3df017b501
   languageName: node
   linkType: hard
 
