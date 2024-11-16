@@ -2,23 +2,25 @@ import {
   ArraySchema,
   BooleanSchema,
   DateSchema,
+  DescriptionAction,
   GenericSchema,
   LiteralSchema,
   NullableSchema,
   NumberSchema,
   ObjectSchema,
+  SchemaWithPipe,
   StringSchema,
   UnionSchema,
 } from 'valibot';
 
 const createSchemaPredicate =
-  <T extends GenericSchema>(schemaName: string) =>
+  <T>(schemaName: string, kind = 'schema') =>
   (schema: unknown): schema is T => {
     return (
       typeof schema === 'object' &&
       schema !== null &&
       'kind' in schema &&
-      schema.kind === 'schema' &&
+      schema.kind === kind &&
       'type' in schema &&
       schema.type === schemaName
     );
@@ -58,3 +60,20 @@ export const isUnionSchema =
 export const isLiteralSchema =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   createSchemaPredicate<LiteralSchema<any, any>>('literal');
+
+export const isWithPipeSchema = (
+  schema: unknown,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): schema is SchemaWithPipe<any> => {
+  return (
+    !!schema &&
+    typeof schema === 'object' &&
+    'pipe' in schema &&
+    Array.isArray(schema.pipe)
+  );
+};
+
+export const isDescriptionAction = createSchemaPredicate<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  DescriptionAction<any, any>
+>('description', 'action');

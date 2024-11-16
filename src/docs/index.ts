@@ -5,18 +5,21 @@ import {
   isArraySchema,
   isBooleanSchema,
   isDateSchema,
+  isDescriptionAction,
   isLiteralSchema,
   isNullableSchema,
   isNumberSchema,
   isObjectSchema,
   isStringSchema,
   isUnionSchema,
+  isWithPipeSchema,
 } from '../utils/valibot';
 import { isResource } from '../resources';
 
 export const createOpenapiJson = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   specs: Record<string, any>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   resources: Record<string, any>,
   endpoints: {
     method: Method;
@@ -68,6 +71,7 @@ export const createOpenapiJson = (
         tags: conf.tags ?? [endpointPath.split('/')[1]],
         parameters: mapEndpointParams({
           params: conf.route.params,
+          query: conf.query,
         }),
         requestBody: undefined,
         responses: mapEndpointResponses({
@@ -104,7 +108,7 @@ export const mapEndpointResponses = ({
     }
     if (isStringSchema(schema)) {
       res[status] = {
-        description: '',
+        description: getSchemaDescription(schema),
         content: {
           'text/plain': {
             schema: {
@@ -117,7 +121,7 @@ export const mapEndpointResponses = ({
     }
 
     res[status] = {
-      description: '',
+      description: getSchemaDescription(schema),
       content: {
         'application/json': {
           schema: mapSchemaToOpenapi(schema, resourceRefMap),
@@ -129,7 +133,13 @@ export const mapEndpointResponses = ({
   return res;
 };
 
-export const mapEndpointParams = ({ params }: { params: GenericSchema }) => {
+export const mapEndpointParams = ({
+  params,
+  query,
+}: {
+  params: GenericSchema;
+  query: GenericSchema | undefined | null;
+}) => {
   const res = [];
 
   if (isObjectSchema(params)) {
@@ -139,10 +149,23 @@ export const mapEndpointParams = ({ params }: { params: GenericSchema }) => {
           name: key,
           in: 'path',
           required: true,
-          description: '',
+          description: getSchemaDescription(fieldSchema),
           schema: {
             type: 'string',
           },
+        });
+      }
+    }
+  }
+  if (isObjectSchema(query)) {
+    for (const [key, fieldSchema] of Object.entries(query.entries)) {
+      if (isStringSchema(fieldSchema)) {
+        res.push({
+          name: key,
+          in: 'query',
+          required: true,
+          description: getSchemaDescription(fieldSchema),
+          schema: mapSchemaToOpenapi(fieldSchema),
         });
       }
     }
@@ -225,4 +248,15 @@ export const mapSchemaToOpenapi = (
   }
 
   console.warn(`[proute-openapi] unhandled schema conversion`, schema);
+};
+
+export const getSchemaDescription = (schema: GenericSchema) => {
+  if (isWithPipeSchema(schema)) {
+    for (const elem of schema.pipe) {
+      if (isDescriptionAction(elem)) {
+        return elem.description;
+      }
+    }
+  }
+  return '';
 };
