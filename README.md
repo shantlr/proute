@@ -125,9 +125,9 @@ export default defineConfig({
   plugins: [
     prouteVitePlugin({
       inputPath: './src/router', // folder where you are residing your endpoints files
-      outputRouter: './src/router/index.ts', // file where the router will be generated, default: `inputPath`/index.ts
-      outputBaseConf: './src/router/base-conf.ts', // file where utils will be generated, default: `inputPath`/base-conf.ts
-      resourcesPath: './src/router/resources.ts', // file that exports resources schemas, default: `inputPath`/resources.ts
+      outputRouter: './src/router/index.ts', // file where the router will be generated, default: $inputPath/index.ts
+      outputBaseConf: './src/router/base-conf.ts', // file where utils will be generated, default: $inputPath/base-conf.ts
+      resourcesPath: './src/router/resources.ts', // file that exports resources schemas, default: $inputPath/resources.ts
     }),
   ],
 });
@@ -136,3 +136,27 @@ export default defineConfig({
 ## File auto intializing
 
 When the vite server is running, any empty endpoint file will be automatically initialized with a basic endpoint boilerplate
+
+## Docs
+
+Openapi documentation will be generated automatically based on valibots schemas
+
+### Enable docs
+
+```ts
+// vite.config.ts
+import { defineConfig } from 'vitest/config';
+import { prouteVitePlugin } from 'proute/plugins/vite';
+
+export default defineConfig({
+  plugins: [
+    prouteVitePlugin({
+      // ...
+      docs: {
+        uiEndpoint: '/docs',
+        jsonEndpoint: '/docs/openapi.json', // default: $uiEndpoint/openapi.json`
+      },
+    }),
+  ],
+});
+```

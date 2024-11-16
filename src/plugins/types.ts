@@ -18,7 +18,7 @@ export type PluginOptions = {
      * @default $uiEndpoint/openapi.json
      */
     jsonEndpoint?: string;
-    specs: {
+    specs?: {
       info?: {
         title?: string;
         description?: string;
