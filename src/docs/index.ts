@@ -7,7 +7,12 @@ import {
   isDateSchema,
   isDescriptionAction,
   isExampleAction,
+  isLengthAction,
   isLiteralSchema,
+  isMaxLengthAction,
+  isMaxValueAction,
+  isMinLengthAction,
+  isMinValueAction,
   isNullableSchema,
   isNumberSchema,
   isObjectSchema,
@@ -67,6 +72,7 @@ export const createOpenapiJson = (
         json.paths[endpointPath] = {};
       }
       const { conf } = endpoint.module;
+
       json.paths[endpointPath][endpoint.method] = {
         summary: conf.summary ?? '',
         description: conf.description ?? '',
@@ -75,7 +81,10 @@ export const createOpenapiJson = (
           params: conf.route.params,
           query: conf.query,
         }),
-        requestBody: undefined,
+        requestBody: mapEndpointRequestBody({
+          body: conf.body,
+          resourceRefMap,
+        }),
         responses: mapEndpointResponses({
           responses: conf.responses,
           resourceRefMap,
@@ -87,8 +96,40 @@ export const createOpenapiJson = (
   return json;
 };
 
-export const mapExpressPathToOpenapiPath = (path: string) => {
+const mapExpressPathToOpenapiPath = (path: string) => {
   return path.replace(/:(\w+)/g, '{$1}');
+};
+
+const mapEndpointRequestBody = ({
+  body,
+  resourceRefMap,
+}: {
+  body: GenericSchema | undefined | null;
+  resourceRefMap: Map<unknown, string>;
+}) => {
+  if (!body) {
+    return undefined;
+  }
+
+  if (isStringSchema(body)) {
+    return {
+      description: getSchemaDescription(body),
+      content: {
+        'text/plain': {
+          schema: mapSchemaToOpenapi(body),
+        },
+      },
+    };
+  }
+
+  return {
+    description: getSchemaDescription(body),
+    content: {
+      'application/json': {
+        schema: mapSchemaToOpenapi(body, resourceRefMap),
+      },
+    },
+  };
 };
 
 export const mapEndpointResponses = ({
@@ -113,9 +154,7 @@ export const mapEndpointResponses = ({
         description: getSchemaDescription(schema),
         content: {
           'text/plain': {
-            schema: {
-              type: 'string',
-            },
+            schema: mapSchemaToOpenapi(schema),
           },
         },
       };
@@ -135,6 +174,7 @@ export const mapEndpointResponses = ({
   return res;
 };
 
+//#region Params
 export const mapEndpointParams = ({
   params,
   query,
@@ -160,7 +200,8 @@ export const mapEndpointParams = ({
       res.push({
         name: key,
         in: 'query',
-        required: true,
+        required:
+          !isOptionalSchema(fieldSchema) && !isNullableSchema(fieldSchema),
         description: getSchemaDescription(fieldSchema),
         schema: mapSchemaToOpenapi(fieldSchema),
       });
@@ -169,7 +210,9 @@ export const mapEndpointParams = ({
 
   return res;
 };
+//endregion
 
+//region Schema to openapi
 export const mapSchemaToOpenapi = (
   schema: unknown,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -190,25 +233,38 @@ export const mapSchemaToOpenapi = (
     return {
       type: 'number',
       example: getSchemaExample(schema),
+      minimum: getSchemaMinValue(schema),
+      maximum: getSchemaMaxValue(schema),
     };
   }
   if (isArraySchema(schema)) {
+    const length = getSchemaLength(schema);
     return {
       type: 'array',
       items: mapSchemaToOpenapi(schema.item, resourceRefMap),
       example: getSchemaExample(schema),
+      minItems: length ?? getSchemaMinLength(schema),
+      maxItems: length ?? getSchemaMaxLength(schema),
     };
   }
 
   if (isObjectSchema(schema)) {
     return {
       type: 'object',
-      properties: Object.entries(
-        schema.entries as Record<string, GenericSchema>,
-      ).reduce((acc, [key, value]) => {
-        acc[key] = mapSchemaToOpenapi(value, resourceRefMap);
-        return acc;
-      }, {}),
+      ...Object.entries(schema.entries as Record<string, GenericSchema>).reduce(
+        (acc, [key, value]) => {
+          acc.properties[key] = mapSchemaToOpenapi(value, resourceRefMap);
+          if (!isOptionalSchema(value) && !isNullableSchema(value)) {
+            acc.required.push(key);
+          }
+          return acc;
+        },
+        {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          properties: {} as Record<string, any>,
+          required: [] as string[],
+        },
+      ),
       example: getSchemaExample(schema),
     };
   }
@@ -227,10 +283,13 @@ export const mapSchemaToOpenapi = (
     return mapSchemaToOpenapi(wrapped, resourceRefMap);
   }
   if (isDateSchema(schema)) {
+    const length = getSchemaLength(schema);
     return {
       type: 'string',
       format: 'date-time',
       example: getSchemaExample(schema),
+      minLength: length ?? getSchemaMinLength(schema),
+      maxLength: length ?? getSchemaMaxLength(schema),
     };
   }
   if (isBooleanSchema(schema)) {
@@ -240,10 +299,24 @@ export const mapSchemaToOpenapi = (
     };
   }
   if (isUnionSchema(schema)) {
+    const oneOf = schema.options.map((opt) =>
+      mapSchemaToOpenapi(opt, resourceRefMap),
+    );
+
+    // const [stringSchemas, others] = oneOf.reduce(
+    //   (acc, curr) => {
+    //     if (isStringSchema(curr)) {
+    //       acc[0].push(curr);
+    //     } else {
+    //       acc[1].push(curr);
+    //     }
+    //     return acc;
+    //   },
+    //   [[], []],
+    // );
+
     return {
-      oneOf: schema.options.map((opt) =>
-        mapSchemaToOpenapi(opt, resourceRefMap),
-      ),
+      oneOf,
       example: getSchemaExample(schema),
     };
   }
@@ -257,8 +330,29 @@ export const mapSchemaToOpenapi = (
 
   console.warn(`[proute-openapi] unhandled schema conversion`, schema);
 };
+//endregion
 
-export const getSchemaExample = (schema: unknown) => {
+const createGetActionInfo = <Type, Value>(
+  predicate: (schema: unknown) => schema is Type,
+  mapValue: (schema: Type) => Value,
+) => {
+  const getActionInfo = (schema: unknown): Value | undefined => {
+    if (isOptionalSchema(schema) || isNullableSchema(schema)) {
+      return getActionInfo(unwrap(schema));
+    }
+    if (isWithPipeSchema(schema)) {
+      for (const elem of schema.pipe) {
+        if (predicate(elem)) {
+          return mapValue(elem);
+        }
+      }
+    }
+    return undefined;
+  };
+  return getActionInfo;
+};
+
+const getSchemaExample = (schema: unknown) => {
   if (isOptionalSchema(schema) || isNullableSchema(schema)) {
     return getSchemaExample(unwrap(schema));
   }
@@ -280,16 +374,28 @@ export const getSchemaExample = (schema: unknown) => {
   return example;
 };
 
-export const getSchemaDescription = (schema: unknown) => {
-  if (isOptionalSchema(schema) || isNullableSchema(schema)) {
-    return getSchemaDescription(unwrap(schema));
-  }
-  if (isWithPipeSchema(schema)) {
-    for (const elem of schema.pipe) {
-      if (isDescriptionAction(elem)) {
-        return elem.description;
-      }
-    }
-  }
-  return '';
-};
+const getSchemaDescription = createGetActionInfo(
+  isDescriptionAction,
+  (action) => action.description,
+);
+
+const getSchemaMinValue = createGetActionInfo(
+  isMinValueAction,
+  (action) => action.requirement as number,
+);
+const getSchemaMaxValue = createGetActionInfo(
+  isMaxValueAction,
+  (action) => action.requirement as number,
+);
+const getSchemaLength = createGetActionInfo(
+  isLengthAction,
+  (action) => action.requirement as number,
+);
+const getSchemaMinLength = createGetActionInfo(
+  isMinLengthAction,
+  (action) => action.requirement as number,
+);
+const getSchemaMaxLength = createGetActionInfo(
+  isMaxLengthAction,
+  (action) => action.requirement as number,
+);

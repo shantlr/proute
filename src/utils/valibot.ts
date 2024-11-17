@@ -1,12 +1,18 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   ArraySchema,
   BaseMetadata,
+  BaseSchema,
+  BaseValidation,
   BooleanSchema,
   DateSchema,
   DescriptionAction,
-  GenericSchema,
-  InferInput,
+  LengthAction,
   LiteralSchema,
+  MaxLengthAction,
+  MaxValueAction,
+  MinLengthAction,
+  MinValueAction,
   NullableSchema,
   NumberSchema,
   ObjectSchema,
@@ -17,9 +23,10 @@ import {
 } from 'valibot';
 
 export type ExampleAction<TInput> = BaseMetadata<TInput> & {
-  example: TInput;
+  example: any;
 };
-export const example = <TInput>(e: TInput): ExampleAction<TInput> => ({
+
+export const example = <TInput>(e: any): ExampleAction<TInput> => ({
   kind: 'metadata',
   type: 'proute/example',
   reference: example,
@@ -27,7 +34,15 @@ export const example = <TInput>(e: TInput): ExampleAction<TInput> => ({
 });
 
 const createSchemaPredicate =
-  <T>(schemaName: string, kind = 'schema') =>
+  <
+    T extends
+      | BaseValidation<any, any, any>
+      | BaseSchema<any, any, any>
+      | BaseMetadata<any>,
+  >(
+    schemaName: T['type'],
+    kind: T['kind'],
+  ) =>
   (schema: unknown): schema is T => {
     return (
       typeof schema === 'object' &&
@@ -39,47 +54,57 @@ const createSchemaPredicate =
     );
   };
 
-export const isStringSchema =
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  createSchemaPredicate<StringSchema<any>>('string');
+export const isStringSchema = createSchemaPredicate<StringSchema<any>>(
+  'string',
+  'schema',
+);
 
-export const isNumberSchema =
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  createSchemaPredicate<NumberSchema<any>>('number');
+export const isNumberSchema = createSchemaPredicate<NumberSchema<any>>(
+  'number',
+  'schema',
+);
 
-export const isObjectSchema =
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  createSchemaPredicate<ObjectSchema<any, any>>('object');
+export const isObjectSchema = createSchemaPredicate<ObjectSchema<any, any>>(
+  'object',
+  'schema',
+);
 
-export const isArraySchema =
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  createSchemaPredicate<ArraySchema<any, any>>('array');
+export const isArraySchema = createSchemaPredicate<ArraySchema<any, any>>(
+  'array',
+  'schema',
+);
 
-export const isNullableSchema =
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  createSchemaPredicate<NullableSchema<any, any>>('nullable');
-export const isOptionalSchema =
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  createSchemaPredicate<OptionalSchema<any, any>>('optional');
+export const isNullableSchema = createSchemaPredicate<NullableSchema<any, any>>(
+  'nullable',
+  'schema',
+);
+export const isOptionalSchema = createSchemaPredicate<OptionalSchema<any, any>>(
+  'optional',
+  'schema',
+);
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const isDateSchema = createSchemaPredicate<DateSchema<any>>('date');
+export const isDateSchema = createSchemaPredicate<DateSchema<any>>(
+  'date',
+  'schema',
+);
 
-export const isBooleanSchema =
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  createSchemaPredicate<BooleanSchema<any>>('boolean');
+export const isBooleanSchema = createSchemaPredicate<BooleanSchema<any>>(
+  'boolean',
+  'schema',
+);
 
-export const isUnionSchema =
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  createSchemaPredicate<UnionSchema<any, any>>('union');
+export const isUnionSchema = createSchemaPredicate<UnionSchema<any, any>>(
+  'union',
+  'schema',
+);
 
-export const isLiteralSchema =
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  createSchemaPredicate<LiteralSchema<any, any>>('literal');
+export const isLiteralSchema = createSchemaPredicate<LiteralSchema<any, any>>(
+  'literal',
+  'schema',
+);
 
 export const isWithPipeSchema = (
   schema: unknown,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): schema is SchemaWithPipe<any> => {
   return (
     !!schema &&
@@ -89,12 +114,27 @@ export const isWithPipeSchema = (
   );
 };
 
-export const isExampleAction = createSchemaPredicate<
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ExampleAction<any>
->('proute/example', 'metadata');
+export const isExampleAction = createSchemaPredicate<ExampleAction<any>>(
+  'proute/example',
+  'metadata',
+);
 
 export const isDescriptionAction = createSchemaPredicate<
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   DescriptionAction<any, any>
 >('description', 'metadata');
+
+export const isMinValueAction = createSchemaPredicate<
+  MinValueAction<any, any, any>
+>('min_value', 'validation');
+export const isMaxValueAction = createSchemaPredicate<
+  MaxValueAction<any, any, any>
+>('max_value', 'validation');
+export const isLengthAction = createSchemaPredicate<
+  LengthAction<any, any, any>
+>('length', 'validation');
+export const isMinLengthAction = createSchemaPredicate<
+  MinLengthAction<any, any, any>
+>('min_length', 'validation');
+export const isMaxLengthAction = createSchemaPredicate<
+  MaxLengthAction<any, any, any>
+>('max_length', 'validation');
