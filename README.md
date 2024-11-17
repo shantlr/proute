@@ -256,5 +256,3 @@ const conf = endpointConf({
   },
 });
 ```
-
-### Examples

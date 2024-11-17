@@ -67,6 +67,7 @@ export const generateBaseConf = async (
       if (module.type === 'endpoint') {
         const params = extractParams(module.expressPath);
         results.push(`    '${module.expressPath}': {`);
+        results.push(`      expressPath: '${module.expressPath}',`);
         if (params.length === 0) {
           results.push(`      params: object({}),`);
         } else {

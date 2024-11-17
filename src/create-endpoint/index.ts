@@ -1,6 +1,6 @@
 import { RequestHandler } from 'express';
 import { AnyEndpointConf, EndpointHandler } from './type';
-import { parse } from 'valibot';
+import { GenericSchema, parse } from 'valibot';
 import { createResponseSchemaMapper } from '../resources';
 
 export const isRouteEndpointModule = (
@@ -24,6 +24,19 @@ export const endpointConf = <Conf extends AnyEndpointConf>(
   conf: Conf,
 ): Conf => {
   return conf;
+};
+
+const parseDebug = <Schema extends GenericSchema>(
+  schema: Schema,
+  value: unknown,
+  onError: (error: unknown) => void,
+) => {
+  try {
+    return parse(schema, value);
+  } catch (err) {
+    onError(err);
+    throw err;
+  }
 };
 
 export const createRoute = <Conf extends AnyEndpointConf>(module: {
@@ -64,9 +77,25 @@ export const createRoute = <Conf extends AnyEndpointConf>(module: {
         const params = {
           req,
           res,
-          query: conf.query ? parse(conf.query, req.query) : {},
-          body: conf.body ? parse(conf.body, req.body) : {},
-          params: parse(conf.route.params, req.body),
+          query: conf.query
+            ? parseDebug(conf.query, req.query, (err) => {
+                console.warn(
+                  `[proute] '${conf.route?.expressPath}': query validation failed: ${err}`,
+                );
+              })
+            : {},
+          body: conf.body
+            ? parseDebug(conf.body, req.body, (err) => {
+                console.warn(
+                  `[proute] '${conf.route?.expressPath}': body validation failed: ${err}`,
+                );
+              })
+            : {},
+          params: parseDebug(conf.route.params, req.params, (err) => {
+            console.warn(
+              `[proute] '${conf.route?.expressPath}': params validation failed: ${err}`,
+            );
+          }),
         };
 
         const result = await handler(params);
@@ -76,9 +105,9 @@ export const createRoute = <Conf extends AnyEndpointConf>(module: {
         }
 
         if (result) {
-          if (!conf.responses[result.status]) {
+          if (!(result.status in conf.responses)) {
             console.warn(
-              `[proute] Unknown status code: ${String(result.status)}`,
+              `[proute] '${conf.route?.expressPath}': Unknown status code: ${String(result.status)}`,
             );
             return;
           }

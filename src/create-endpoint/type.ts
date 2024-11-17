@@ -4,6 +4,7 @@ import { ResourceSchema } from '../resources';
 
 export type EndointResponses = Record<number, GenericSchema | null>;
 export type RouteConfig = {
+  expressPath: string;
   params: GenericSchema;
 };
 
