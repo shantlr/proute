@@ -195,3 +195,66 @@ export default defineConfig({
   ],
 });
 ```
+
+### Endpoint description
+
+You can provide several metadata to `endpointConf` that will be included to the generated openapi json
+
+```ts
+const conf = endpointConf({
+  summary: 'Get books',
+  description: 'Get all books',
+  tags: ['books'],
+  // ...
+});
+```
+
+### Valibot action
+
+Valibot action can be used to add extra validation / metadata
+
+```ts
+import {
+  pipe,
+  decimal,
+  transform,
+  string,
+  object,
+  description, // `description` action can be used to add description to the generated openapi json
+} from 'valibot';
+import { example } from 'proute'; // Proute provide an `example` action that allow you to add examples metadata
+
+const conf = endpointConf({
+  summary: 'Get books',
+  description: 'Get all books',
+  tags: ['books'],
+  // ...
+  query: object({
+    limit: pipe(
+      decimal(),
+      transform((v) => Number(v)),
+      minValue(1),
+      maxValue(10),
+      description('Limit number of books in response'),
+    ),
+  }),
+  responses: {
+    200: object({
+      books: pipe(
+        object({
+          id: pipe(string(), description('Book id')),
+        }),
+        description('List of books'),
+        example({
+          id: 'book_1',
+        }),
+        example({
+          id: 'book_2',
+        }),
+      ),
+    }),
+  },
+});
+```
+
+### Examples
