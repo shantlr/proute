@@ -586,12 +586,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:18":
-  version: 18.19.64
-  resolution: "@types/node@npm:18.19.64"
+"@types/node@npm:^18":
+  version: 18.19.67
+  resolution: "@types/node@npm:18.19.67"
   dependencies:
     undici-types: "npm:~5.26.4"
-  checksum: 10c0/a54009cd222f5751c903e5f4889a0f12e3d3755a1f87ce919455eeaf00a9ba0c9215c4a92bc3d8df585a894fa3e4cf218e5afccced355688624133e1a4b88235
+  checksum: 10c0/72b06802ac291c2e710bcf527b040f5490e1f85f26fdedad417e13ce3ed3aeb67e1bf3eef0ba5f581986bf361dcdc5f2d1229a9e284bf3dbd85db5c595e67bc6
   languageName: node
   linkType: hard
 
@@ -2022,13 +2022,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"node-bin-setup@npm:^1.0.0":
-  version: 1.1.3
-  resolution: "node-bin-setup@npm:1.1.3"
-  checksum: 10c0/7de7d17aff7baa4e424f2b94ba14626b177620998d7bbe5bb28841a4e078d9c198a96edefb88f00e80a724f3d56907cdfb4be8af1c45e46b0f1476c26d828910
-  languageName: node
-  linkType: hard
-
 "node-gyp@npm:latest":
   version: 10.2.0
   resolution: "node-gyp@npm:10.2.0"
@@ -2046,17 +2039,6 @@ __metadata:
   bin:
     node-gyp: bin/node-gyp.js
   checksum: 10c0/00630d67dbd09a45aee0a5d55c05e3916ca9e6d427ee4f7bc392d2d3dc5fad7449b21fc098dd38260a53d9dcc9c879b36704a1994235d4707e7271af7e9a835b
-  languageName: node
-  linkType: hard
-
-"node@npm:18":
-  version: 18.20.4
-  resolution: "node@npm:18.20.4"
-  dependencies:
-    node-bin-setup: "npm:^1.0.0"
-  bin:
-    node: bin/node
-  checksum: 10c0/1534d8d6d2cfb43500e85244a6d703ff16b17aebfe95aa5aae33c274b4a327fbaa2eabbcb3e8d65bd556b4c8b83d0ade440fc023b363e978c3de72f9137a7d15
   languageName: node
   linkType: hard
 
@@ -2240,12 +2222,11 @@ __metadata:
     "@eslint/js": "npm:^9.14.0"
     "@types/debug": "npm:^4"
     "@types/express": "npm:^5.0.0"
-    "@types/node": "npm:18"
+    "@types/node": "npm:^18"
     debug: "npm:^4.3.7"
     eslint: "npm:^9.14.0"
     eslint-config-prettier: "npm:^9.1.0"
     eslint-plugin-prettier: "npm:^5.2.1"
-    node: "npm:18"
     prettier: "npm:^3.3.3"
     typescript: "npm:^5.6.3"
     typescript-eslint: "npm:^8.13.0"
