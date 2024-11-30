@@ -33,7 +33,7 @@ export const generateDefaultEndpoints = async (
       lines.push('');
 
       lines.push(
-        `const handler: EndpointHandler<typeof conf> = async ({}) => {`,
+        `const handler: EndpointHandler<typeof conf> = async ({}): ReturnType<EndpointHandler<typeof conf>> => {`,
       );
       lines.push(`  return {`);
       lines.push(`    status: 200,`);

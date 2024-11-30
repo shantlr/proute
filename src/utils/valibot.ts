@@ -14,6 +14,7 @@ import {
   MinLengthAction,
   MinValueAction,
   NullableSchema,
+  NullishSchema,
   NumberSchema,
   ObjectSchema,
   OptionalSchema,
@@ -76,6 +77,10 @@ export const isArraySchema = createSchemaPredicate<ArraySchema<any, any>>(
 
 export const isNullableSchema = createSchemaPredicate<NullableSchema<any, any>>(
   'nullable',
+  'schema',
+);
+export const isNullishSchema = createSchemaPredicate<NullishSchema<any, any>>(
+  'nullish',
   'schema',
 );
 export const isOptionalSchema = createSchemaPredicate<OptionalSchema<any, any>>(

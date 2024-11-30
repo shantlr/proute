@@ -14,6 +14,7 @@ import {
   isMinLengthAction,
   isMinValueAction,
   isNullableSchema,
+  isNullishSchema,
   isNumberSchema,
   isObjectSchema,
   isOptionalSchema,
@@ -254,7 +255,11 @@ export const mapSchemaToOpenapi = (
       ...Object.entries(schema.entries as Record<string, GenericSchema>).reduce(
         (acc, [key, value]) => {
           acc.properties[key] = mapSchemaToOpenapi(value, resourceRefMap);
-          if (!isOptionalSchema(value) && !isNullableSchema(value)) {
+          if (
+            !isOptionalSchema(value) &&
+            !isNullableSchema(value) &&
+            !isNullishSchema(value)
+          ) {
             acc.required.push(key);
           }
           return acc;
@@ -278,6 +283,14 @@ export const mapSchemaToOpenapi = (
     inner.nullable = true;
     return inner;
   }
+  if (isNullishSchema(schema)) {
+    const wrapped = unwrap(schema);
+    const inner = mapSchemaToOpenapi(wrapped, resourceRefMap);
+
+    inner.nullable = true;
+    return inner;
+  }
+
   if (isOptionalSchema(schema)) {
     const wrapped = unwrap(schema);
     return mapSchemaToOpenapi(wrapped, resourceRefMap);
