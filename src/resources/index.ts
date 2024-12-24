@@ -1,4 +1,5 @@
 import {
+  _getStandardProps,
   BaseSchema,
   CustomIssue,
   GenericSchema,
@@ -36,11 +37,11 @@ export const createResource = <Input, Output extends GenericSchema>(arg: {
       return arg.map(value as Input);
     },
 
-    '~standard': 1,
-    '~vendor': 'valibot',
+    get '~standard'() {
+      return _getStandardProps(this);
+    },
 
-    // get '~standard'() {},
-    '~validate'(dataset) {
+    '~run'(dataset) {
       // no check for input type
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -110,25 +111,32 @@ export const createResponseSchemaMapper = (
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       [] as ((value: any) => any)[],
     );
-    if (mappers.length) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (value: Record<any, any>) => {
-        const shallow = { ...value };
-        mappers.forEach((mapField) => {
-          mapField(shallow);
-        });
-        return shallow;
-      };
+
+    if (!mappers.length) {
+      // no fields require mapping
+      return undefined;
     }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (value: Record<any, any>) => {
+      const shallow = { ...value };
+      mappers.forEach((mapField) => {
+        mapField(shallow);
+      });
+      return shallow;
+    };
   } else if (isArraySchema(schema)) {
     const mapItem = createResponseSchemaMapper(schema.item);
-    if (mapItem) {
-      return (value: any[]) => {
-        return value.map((item) => {
-          return mapItem(item);
-        });
-      };
+    if (!mapItem) {
+      // item does not require mapping
+      return undefined;
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (value: any[]) => {
+      return value.map((item) => {
+        return mapItem(item);
+      });
+    };
   }
 
   return undefined;
