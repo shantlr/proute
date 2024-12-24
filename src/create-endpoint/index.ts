@@ -150,13 +150,13 @@ export const createRoute = <Conf extends AnyEndpointConf>(module: {
             ) {
               const data = mappedData as {
                 redirect_url: string;
-                query_params?: Record<string, string>;
+                redirect_url_query?: Record<string, string>;
               };
 
               let url = data.redirect_url;
 
-              if (data.query_params) {
-                url = `?${new URLSearchParams(data.query_params).toString()}`;
+              if (data.redirect_url_query) {
+                url += `?${new URLSearchParams(data.redirect_url_query).toString()}`;
               }
 
               res.status(result.status as number).redirect(url);
