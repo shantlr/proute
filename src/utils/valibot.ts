@@ -16,9 +16,11 @@ import {
   NullableSchema,
   NullishSchema,
   NumberSchema,
+  object,
   ObjectSchema,
   OptionalSchema,
   SchemaWithPipe,
+  string,
   StringSchema,
   UnionSchema,
 } from 'valibot';
@@ -33,6 +35,30 @@ export const example = <TInput>(e: any): ExampleAction<TInput> => ({
   reference: example,
   example: e,
 });
+
+export type RedirectSchema<QueryParams extends ObjectSchema<any, any>> =
+  ObjectSchema<
+    {
+      redirect_url: StringSchema<any>;
+      redirect_url_query: QueryParams;
+    },
+    any
+  >;
+
+export const redirect = <
+  Config extends {
+    query?: ObjectSchema<any, any>;
+  },
+>(
+  arg: Config = {
+    query: undefined,
+  } as Config,
+): RedirectSchema<Config['query']> => {
+  return object({
+    redirect_url: string(),
+    redirect_url_query: arg.query ?? object({}),
+  });
+};
 
 const createSchemaPredicate =
   <
