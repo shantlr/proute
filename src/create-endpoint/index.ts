@@ -112,6 +112,29 @@ export const createRoute = <Conf extends AnyEndpointConf>(module: {
             return;
           }
 
+          if (result.cookies) {
+            for (const [key, value] of Object.entries(result.cookies)) {
+              if (value === null) {
+                res.clearCookie(key);
+              } else if (typeof value === 'string') {
+                res.cookie(key, value);
+              } else if (value) {
+                res.cookie(key, value.value, {
+                  expires: value.expires,
+                  domain: value.domain,
+                  httpOnly: value.httpOnly,
+                  maxAge: value.maxAge,
+                  path: value.path,
+                  priority: value.priority,
+                  secure: value.secure,
+                  sameSite: value.sameSite,
+                  partitioned: value.partitioned,
+                  signed: value.signed,
+                });
+              }
+            }
+          }
+
           const mappedData = responsesMapper[result.status](result.data);
 
           // redirect

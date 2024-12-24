@@ -1,4 +1,10 @@
-import { GenericSchema, InferOutput, ObjectSchema } from 'valibot';
+import {
+  GenericSchema,
+  InferInput,
+  InferObjectInput,
+  InferOutput,
+  ObjectSchema,
+} from 'valibot';
 import type { Request, Response } from 'express';
 import { ResourceSchema } from '../resources';
 
@@ -43,15 +49,38 @@ type MapEndpointReturnType<Schema> =
       : // eslint-disable-next-line @typescript-eslint/no-explicit-any
         Schema extends ObjectSchema<infer ObjectFields, any>
         ? {
-            [K in keyof ObjectFields]: MapEndpointReturnType<ObjectFields[K]>;
+            [K in keyof InferObjectInput<ObjectFields>]: MapEndpointReturnType<
+              ObjectFields[K]
+            >;
           }
         : Schema extends GenericSchema
-          ? InferOutput<Schema>
+          ? InferInput<Schema>
           : undefined | null;
 
 export type EndpointReturnType<Conf extends AnyEndpointConf> = {
   [K in keyof Conf['responses']]: {
     status: K;
+    /**
+     * Set value to null to delete the cookie
+     */
+    cookies?: Record<
+      string,
+      | string
+      | null
+      | {
+          value: string;
+          expires?: Date;
+          path?: string;
+          domain?: string;
+          secure?: boolean;
+          httpOnly?: boolean;
+          sameSite?: 'strict' | 'lax' | 'none';
+          maxAge?: number;
+          priority?: 'low' | 'medium' | 'high';
+          partitioned?: boolean;
+          signed?: boolean;
+        }
+    >;
     data: MapEndpointReturnType<Conf['responses'][K]>;
   };
 }[keyof Conf['responses']];
