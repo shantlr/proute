@@ -7,6 +7,7 @@ import {
   BooleanSchema,
   DateSchema,
   DescriptionAction,
+  InferInput,
   LengthAction,
   LiteralSchema,
   MaxLengthAction,
@@ -23,6 +24,7 @@ import {
   string,
   StringSchema,
   UnionSchema,
+  optional,
 } from 'valibot';
 
 export type ExampleAction<TInput> = BaseMetadata<TInput> & {
@@ -38,26 +40,29 @@ export const example = <TInput>(e: any): ExampleAction<TInput> => ({
 
 export type RedirectSchema<QueryParams extends ObjectSchema<any, any>> =
   ObjectSchema<
-    {
-      redirect_url: StringSchema<any>;
-      redirect_url_query: QueryParams;
-    },
+    InferInput<QueryParams> extends Record<PropertyKey, never>
+      ? {
+          redirect_url: StringSchema<any>;
+          redirect_url_query?: QueryParams;
+        }
+      : {
+          redirect_url: StringSchema<any>;
+          redirect_url_query: QueryParams;
+        },
     any
   >;
 
-export const redirect = <
-  Config extends {
-    query?: ObjectSchema<any, any>;
-  },
->(
-  arg: Config = {
+export const redirect = <QuerySchema extends ObjectSchema<any, any>>(
+  arg: {
+    query?: QuerySchema;
+  } = {
     query: undefined,
-  } as Config,
-): RedirectSchema<Config['query']> => {
+  },
+) => {
   return object({
     redirect_url: string(),
-    redirect_url_query: arg.query ?? object({}),
-  });
+    redirect_url_query: arg.query ?? optional(object({})),
+  }) as RedirectSchema<QuerySchema>;
 };
 
 const createSchemaPredicate =
