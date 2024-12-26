@@ -7,7 +7,6 @@ import {
   BooleanSchema,
   DateSchema,
   DescriptionAction,
-  InferInput,
   LengthAction,
   LiteralSchema,
   MaxLengthAction,
@@ -40,7 +39,7 @@ export const example = <TInput>(e: any): ExampleAction<TInput> => ({
 
 export type RedirectSchema<QueryParams extends ObjectSchema<any, any>> =
   ObjectSchema<
-    InferInput<QueryParams> extends Record<PropertyKey, never>
+    QueryParams extends ObjectSchema<Record<PropertyKey, never>, any>
       ? {
           redirect_url: StringSchema<any>;
           redirect_url_query?: QueryParams;
@@ -52,7 +51,12 @@ export type RedirectSchema<QueryParams extends ObjectSchema<any, any>> =
     any
   >;
 
-export const redirect = <QuerySchema extends ObjectSchema<any, any>>(
+export const redirect = <
+  QuerySchema extends ObjectSchema<any, any> = ObjectSchema<
+    Record<PropertyKey, never>,
+    any
+  >,
+>(
   arg: {
     query?: QuerySchema;
   } = {
@@ -62,7 +66,7 @@ export const redirect = <QuerySchema extends ObjectSchema<any, any>>(
   return object({
     redirect_url: string(),
     redirect_url_query: arg.query ?? optional(object({})),
-  }) as RedirectSchema<QuerySchema>;
+  }) as unknown as RedirectSchema<QuerySchema>;
 };
 
 const createSchemaPredicate =
