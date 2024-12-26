@@ -156,7 +156,12 @@ export const createRoute = <Conf extends AnyEndpointConf>(module: {
               let url = data.redirect_url;
 
               if (data.redirect_url_query) {
-                url += `?${new URLSearchParams(data.redirect_url_query).toString()}`;
+                const redirectQuery = new URLSearchParams(
+                  data.redirect_url_query,
+                ).toString();
+                if (redirectQuery) {
+                  url += `?${redirectQuery}`;
+                }
               }
 
               res.status(result.status as number).redirect(url);

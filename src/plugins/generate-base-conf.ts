@@ -31,7 +31,7 @@ export const generateBaseConf = async (
   },
 ) => {
   const results = [GENERATED_BASE_CONF_HEADER, ''];
-  results.push(`import { createResourceMap } from 'proute'`);
+  results.push(`import { createResourceMap } from 'proute';`);
   results.push(`import { object, string } from 'valibot';`);
 
   const resPath = await pathStat(resourcesPath);
