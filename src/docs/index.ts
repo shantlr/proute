@@ -19,6 +19,7 @@ import {
   isObjectSchema,
   isOptionalSchema,
   isStringSchema,
+  isUndefinedSchema,
   isUnionSchema,
   isWithPipeSchema,
 } from '../utils/valibot';
@@ -164,11 +165,13 @@ export const mapEndpointResponses = ({
 
     res[status] = {
       description: getSchemaDescription(schema),
-      content: {
-        'application/json': {
-          schema: mapSchemaToOpenapi(schema, resourceRefMap),
-        },
-      },
+      content: !isEmptyContentSchema(schema)
+        ? {
+            'application/json': {
+              schema: mapSchemaToOpenapi(schema, resourceRefMap),
+            },
+          }
+        : undefined,
     };
   }
 
@@ -219,6 +222,9 @@ export const mapSchemaToOpenapi = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   resourceRefMap: Map<any, string> = new Map(),
 ) => {
+  if (isUndefinedSchema(schema)) {
+    return undefined;
+  }
   if (resourceRefMap?.has(schema)) {
     return {
       $ref: resourceRefMap.get(schema),
@@ -227,6 +233,13 @@ export const mapSchemaToOpenapi = (
   if (isStringSchema(schema)) {
     return {
       type: 'string',
+      example: getSchemaExample(schema),
+    };
+  }
+  if (isLiteralSchema(schema)) {
+    return {
+      type: 'string',
+      enum: [schema.literal],
       example: getSchemaExample(schema),
     };
   }
@@ -312,38 +325,49 @@ export const mapSchemaToOpenapi = (
     };
   }
   if (isUnionSchema(schema)) {
-    const oneOf = schema.options.map((opt) =>
+    const optionSchemas = schema.options.map((opt) =>
       mapSchemaToOpenapi(opt, resourceRefMap),
     );
+    // merge literal
+    const { stringEnums, others } = optionSchemas.reduce(
+      (acc, option) => {
+        if (option.type === 'string' && option.enum?.length) {
+          acc.stringEnums.push(...option.enum);
+        } else {
+          acc.others.push(option);
+        }
+        return acc;
+      },
+      {
+        stringEnums: [],
+        others: [],
+      },
+    );
 
-    // const [stringSchemas, others] = oneOf.reduce(
-    //   (acc, curr) => {
-    //     if (isStringSchema(curr)) {
-    //       acc[0].push(curr);
-    //     } else {
-    //       acc[1].push(curr);
-    //     }
-    //     return acc;
-    //   },
-    //   [[], []],
-    // );
+    const oneOf = others;
+    if (stringEnums.length) {
+      oneOf.push({
+        type: 'string',
+        enum: stringEnums,
+      });
+    }
+
+    if (oneOf.length === 1) {
+      return oneOf[0];
+    }
 
     return {
       oneOf,
       example: getSchemaExample(schema),
     };
   }
-  if (isLiteralSchema(schema)) {
-    return {
-      type: 'string',
-      enum: [schema.literal],
-      example: getSchemaExample(schema),
-    };
-  }
-
   console.warn(`[proute-openapi] unhandled schema conversion`, schema);
 };
 //endregion
+
+function isEmptyContentSchema(schema: GenericSchema) {
+  return isUndefinedSchema(schema);
+}
 
 const createGetActionInfo = <Type, Value>(
   predicate: (schema: unknown) => schema is Type,

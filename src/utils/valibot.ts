@@ -24,6 +24,7 @@ import {
   StringSchema,
   UnionSchema,
   optional,
+  UndefinedSchema,
 } from 'valibot';
 
 export type ExampleAction<TInput> = BaseMetadata<TInput> & {
@@ -118,6 +119,11 @@ export const isNullishSchema = createSchemaPredicate<NullishSchema<any, any>>(
   'nullish',
   'schema',
 );
+export const isUndefinedSchema = createSchemaPredicate<UndefinedSchema<any>>(
+  'undefined',
+  'schema',
+);
+
 export const isOptionalSchema = createSchemaPredicate<OptionalSchema<any, any>>(
   'optional',
   'schema',
