@@ -1,16 +1,41 @@
-// import { Middleware } from './types';
+import { Request, Response } from 'express';
+import { AnyHandlerExtraParam, Middleware, MiddlewareFn } from './types';
+import { AnyEndpointResponses } from '../types';
 
-// // export const createMiddleware = <Params, NextParams>(
-// //   fn: (params: Params) => NextParams | Promise<NextParams>,
-// // ): Middleware<Params, NextParams> => {
-// //   const middleware: Middleware<Params, NextParams> = async (
-// //     params: Params,
-// //   ): Promise<NextParams> => {
-// //     return fn(params);
-// //   };
-// //   middleware.chain = () => {
-// //     return createMiddleware(() => {});
-// //   };
+export function createMiddleware<
+  InputParams extends { req: Request; res: Response },
+  AddedParams extends AnyHandlerExtraParam,
+>(
+  fn: MiddlewareFn<InputParams, AddedParams, Record<PropertyKey, never>>,
+): Middleware<InputParams, AddedParams, Record<PropertyKey, never>>;
 
-// //   return middleware;
-// // };
+export function createMiddleware<
+  InputParams extends { req: Request; res: Response },
+  AddedParams extends AnyHandlerExtraParam,
+  Responses extends AnyEndpointResponses,
+>(
+  conf: {
+    responses: Responses;
+  },
+  fn: MiddlewareFn<InputParams, AddedParams, NoInfer<Responses>>,
+): Middleware<InputParams, AddedParams, NoInfer<Responses>>;
+
+export function createMiddleware(...args) {
+  if (args.length === 1 && typeof args[0] === 'function') {
+    return {
+      responses: {},
+      handler: args[0],
+    };
+  }
+  return {
+    ...args[0],
+    handler: args[1],
+  };
+}
+
+// export const convertExpressMiddleware = (
+//   expressMiddleware: RequestHandler,
+//   addParams?: () => void,
+// ) => {
+//   return createMiddleware(() => {});
+// };

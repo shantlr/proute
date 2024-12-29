@@ -1,7 +1,22 @@
 import { RequestHandler } from 'express';
-import { AnyEndpointConf, EndpointHandler } from './type';
-import { GenericSchema, parse } from 'valibot';
+import {
+  AnyEndpointConf,
+  AnyInputEndpointConf,
+  EndpointConf,
+  EndpointHandler,
+  EndpointHandlerParam,
+  ExtendEndpointConfHandlerParams,
+} from './types';
+import { GenericSchema, InferOutput, parse } from 'valibot';
 import { createResponseSchemaMapper } from '../resources';
+import {
+  AnyHandlerExtraParam,
+  AnyMiddlewareFn,
+  Middleware,
+  MiddlewareFn,
+} from '../middleware/types';
+import { AnyEndpointResponses, EndpointResponseInput } from '../types';
+import { MergeResponse, mergeResponses } from './merge-responses';
 
 export const isRouteEndpointModule = (
   module: unknown,
@@ -20,10 +35,128 @@ export const isRouteEndpointModule = (
   );
 };
 
-export const endpointConf = <Conf extends AnyEndpointConf>(
+type ExtensibleEndpointConf<Conf extends AnyEndpointConf> = Conf & {
+  middleware<HandlerExtraParams extends AnyHandlerExtraParam>(
+    middleware: MiddlewareFn<
+      EndpointHandlerParam<Conf>,
+      HandlerExtraParams,
+      Conf['responses']
+    >,
+  ): ExtensibleEndpointConf<
+    ExtendEndpointConfHandlerParams<Conf, HandlerExtraParams>
+  >;
+
+  middleware<
+    HandlerExtraParams extends AnyHandlerExtraParam,
+    ExtendedResponses extends AnyEndpointResponses,
+  >(param: {
+    responses: ExtendedResponses;
+    handler: MiddlewareFn<
+      EndpointHandlerParam<Conf>,
+      HandlerExtraParams,
+      | MergeResponse<Conf['responses'], NoInfer<ExtendedResponses>>
+      | NoInfer<ExtendedResponses>
+    >;
+  }): Conf extends EndpointConf<
+    infer Route,
+    infer Query,
+    infer Body,
+    infer Responses,
+    infer HandlerParams
+  >
+    ? ExtensibleEndpointConf<
+        EndpointConf<
+          Route,
+          Query,
+          Body,
+          MergeResponse<Responses, ExtendedResponses>,
+          HandlerParams & HandlerExtraParams
+        >
+      >
+    : never;
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const isResponse = (value: unknown): value is EndpointResponseInput<any> => {
+  if (
+    value &&
+    typeof value === 'object' &&
+    'status' in value &&
+    value.status != null
+  ) {
+    return true;
+  }
+  return false;
+};
+
+export const baseEndpointConf = <Conf extends AnyEndpointConf>(
   conf: Conf,
-): Conf => {
-  return conf;
+): ExtensibleEndpointConf<Conf> => {
+  const r: ExtensibleEndpointConf<Conf> = {
+    ...conf,
+    middleware: (param) => {
+      if (!param) {
+        return r;
+      }
+
+      let middleware: AnyMiddlewareFn;
+      let extendedConf: { responses: AnyEndpointResponses };
+      if (typeof param === 'function') {
+        middleware = param;
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const input = param as Middleware<any, any, any>;
+        extendedConf = input;
+        middleware = input.handler;
+      }
+
+      return baseEndpointConf({
+        ...conf,
+        responses: extendedConf?.responses
+          ? mergeResponses([conf.responses, extendedConf?.responses])
+          : conf.responses,
+        get middlewares() {
+          return [...conf.middlewares, middleware];
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      }) as any;
+    },
+  };
+
+  return r;
+};
+
+export const endpointConf = <Conf extends AnyInputEndpointConf>(conf: Conf) => {
+  return baseEndpointConf({
+    ...conf,
+    get middlewares() {
+      return [];
+    },
+  }).middleware(function prouteInternalParseRouteMdw({ req }) {
+    return {
+      extraParam: {
+        query: (conf.query
+          ? parseDebug(conf.query, req.query, (err) => {
+              console.warn(
+                `[proute] '${conf.route?.expressPath}': query validation failed: ${err}`,
+              );
+            })
+          : {}) as InferOutput<Conf['query']>,
+        body: (conf.body
+          ? parseDebug(conf.body, req.body, (err) => {
+              console.warn(
+                `[proute] '${conf.route?.expressPath}': body validation failed: ${err}`,
+              );
+            })
+          : {}) as InferOutput<Conf['body']>,
+        params: parseDebug(conf.route.params, req.params, (err) => {
+          console.warn(
+            `[proute] '${conf.route?.expressPath}': params validation failed: ${err}`,
+          );
+        }) as InferOutput<Conf['route']['params']>,
+      },
+    };
+  });
 };
 
 const parseDebug = <Schema extends GenericSchema>(
@@ -65,55 +198,48 @@ export const createRoute = <Conf extends AnyEndpointConf>(module: {
     [K in keyof typeof conf.responses]: (value: unknown) => unknown;
   };
 
+  const handlers = [...conf.middlewares, handler];
+
   return {
     handler: async (req, res) => {
       try {
-        // const params = conf.route.middleware({
-        //   req,
-        //   res,
-        //   query: conf.query ? parse(conf.query, req.query) : {},
-        //   params: parse(conf.route.params, req.body),
-        // });
-        const params = {
+        let params = {
           req,
           res,
-          query: conf.query
-            ? parseDebug(conf.query, req.query, (err) => {
-                console.warn(
-                  `[proute] '${conf.route?.expressPath}': query validation failed: ${err}`,
-                );
-              })
-            : {},
-          body: conf.body
-            ? parseDebug(conf.body, req.body, (err) => {
-                console.warn(
-                  `[proute] '${conf.route?.expressPath}': body validation failed: ${err}`,
-                );
-              })
-            : {},
-          params: parseDebug(conf.route.params, req.params, (err) => {
-            console.warn(
-              `[proute] '${conf.route?.expressPath}': params validation failed: ${err}`,
-            );
-          }),
         };
+        for (const stepHandler of handlers) {
+          if (res.headersSent) {
+            // Request already handled
+            return;
+          }
 
-        const result = await handler(params);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const stepRes = await stepHandler(params as any);
+          if (!isResponse(stepRes)) {
+            params = {
+              ...params,
+              ...(stepRes as { extraParam?: AnyHandlerExtraParam } | undefined)
+                ?.extraParam,
+            };
+            continue;
+          }
 
-        if (res.headersSent) {
-          return;
-        }
-
-        if (result) {
-          if (!(result.status in conf.responses)) {
+          if (!(stepRes.status in conf.responses)) {
             console.warn(
-              `[proute] '${conf.route?.expressPath}': Unknown status code: ${String(result.status)}`,
+              `[proute] '${conf.route?.expressPath}': Unknown status code: ${String(stepRes.status)}`,
             );
             return;
           }
 
-          if (result.cookies) {
-            for (const [key, value] of Object.entries(result.cookies)) {
+          if (!(stepRes.status in conf.responses)) {
+            console.warn(
+              `[proute] '${conf.route?.expressPath}': Unknown status code: ${String(stepRes.status)}`,
+            );
+            return;
+          }
+
+          if (stepRes.cookies) {
+            for (const [key, value] of Object.entries(stepRes.cookies)) {
               if (value === null) {
                 res.clearCookie(key);
               } else if (typeof value === 'string') {
@@ -135,13 +261,13 @@ export const createRoute = <Conf extends AnyEndpointConf>(module: {
             }
           }
 
-          const mappedData = responsesMapper[result.status](result.data);
+          const mappedData = responsesMapper[stepRes.status](stepRes.data);
 
           // redirect
           if (
-            typeof result.status === 'number' &&
-            result.status >= 300 &&
-            result.status < 400
+            typeof stepRes.status === 'number' &&
+            stepRes.status >= 300 &&
+            stepRes.status < 400
           ) {
             // check that redirect response is correct
             if (
@@ -164,7 +290,7 @@ export const createRoute = <Conf extends AnyEndpointConf>(module: {
                 }
               }
 
-              res.status(result.status as number).redirect(url);
+              res.status(stepRes.status as number).redirect(url);
               return;
             }
 
@@ -175,7 +301,7 @@ export const createRoute = <Conf extends AnyEndpointConf>(module: {
             return;
           }
 
-          res.status(result.status as number).send(mappedData);
+          res.status(stepRes.status as unknown as number).send(mappedData);
         }
       } catch (error) {
         if (!res.headersSent) {

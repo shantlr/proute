@@ -8,7 +8,9 @@ export type {
   RouteConfig,
   EndpointConf,
   EndpointHandler,
-} from './create-endpoint/type';
+} from './create-endpoint/types';
+
+export { createMiddleware } from './middleware';
 
 export type { Method } from './types';
 
