@@ -25,7 +25,11 @@ import {
   UnionSchema,
   optional,
   UndefinedSchema,
+  InferInput,
 } from 'valibot';
+import { PickNonOptional } from '../ts-utils';
+
+// type EmptyObjectSchema = ObjectSchema<Record<PropertyKey, never>, undefined>;
 
 export type ExampleAction<TInput> = BaseMetadata<TInput> & {
   example: any;
@@ -39,23 +43,26 @@ export const example = <TInput>(e: any): ExampleAction<TInput> => ({
 });
 
 export type RedirectSchema<QueryParams extends ObjectSchema<any, any>> =
-  ObjectSchema<
-    QueryParams extends ObjectSchema<Record<PropertyKey, never>, any>
-      ? {
-          redirect_url: StringSchema<any>;
-          redirect_url_query?: QueryParams;
-        }
-      : {
-          redirect_url: StringSchema<any>;
-          redirect_url_query: QueryParams;
+  PickNonOptional<InferInput<QueryParams>> extends Record<never, never>
+    ? ObjectSchema<
+        {
+          readonly redirect_url: StringSchema<undefined>;
+          readonly redirect_url_query: OptionalSchema<QueryParams, undefined>;
         },
-    any
-  >;
+        undefined
+      >
+    : ObjectSchema<
+        {
+          readonly redirect_url: StringSchema<undefined>;
+          readonly redirect_url_query: QueryParams;
+        },
+        undefined
+      >;
 
 export const redirect = <
   QuerySchema extends ObjectSchema<any, any> = ObjectSchema<
     Record<PropertyKey, never>,
-    any
+    undefined
   >,
 >(
   arg: {
@@ -67,7 +74,7 @@ export const redirect = <
   return object({
     redirect_url: string(),
     redirect_url_query: arg.query ?? optional(object({})),
-  }) as unknown as RedirectSchema<QuerySchema>;
+  }) as RedirectSchema<QuerySchema>;
 };
 
 const createSchemaPredicate =

@@ -42,7 +42,7 @@ export const generateRouterFile = async (
     if (module.type === 'endpoint') {
       results.push(`if (isRouteEndpointModule(${varName})) {`);
       results.push(
-        `  const route = createRoute(${varName}, { middlewares: [${module.middlewaresModuleIds.map((id) => moduleById.get(id).varName).join(', ')}] });`,
+        `  const route = createRoute(${varName}, { middlewares: [${module.middlewaresModuleIds.map((id) => moduleById.get(id)!.varName).join(', ')}] });`,
       );
       results.push(
         `  router.${module.method}('${module.expressPath}', route.handler);`,

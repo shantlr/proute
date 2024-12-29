@@ -47,7 +47,10 @@ export const createResource = <Input, Output extends GenericSchema>(arg: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mappedValue = arg.map(dataset.value as Input) as any;
       dataset.value = mappedValue;
-      return dataset as OutputDataset<InferOutput<Output>, CustomIssue>;
+      return dataset as unknown as OutputDataset<
+        InferOutput<Output>,
+        CustomIssue
+      >;
     },
   };
 };
@@ -58,13 +61,19 @@ export const createAsyncResource = () => {
 export type ResourceMap<T> = FlattenType<{
   [K in keyof T]: T[K] extends GenericSchema ? T[K] : never;
 }>;
-export const createResourceMap = <T>(resourcesMap: T): ResourceMap<T> => {
-  return Object.entries(resourcesMap).reduce((acc, [key, value]) => {
-    if ('kind' in value && value.kind === 'schema') {
-      acc[key] = value;
-    }
-    return acc;
-  }, {} as ResourceMap<T>);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const createResourceMap = <T extends Record<string, any>>(
+  resourcesMap: T,
+): ResourceMap<T> => {
+  return Object.entries(resourcesMap).reduce(
+    (acc: ResourceMap<T>, [key, value]) => {
+      if ('kind' in value && value.kind === 'schema') {
+        acc[key as keyof T] = value;
+      }
+      return acc;
+    },
+    {} as ResourceMap<T>,
+  );
 };
 
 export const isResource = (

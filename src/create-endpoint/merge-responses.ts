@@ -27,6 +27,10 @@ export const mergeResponses = (
   const groupedByStatus = responses.reduce(
     (acc, res) => {
       for (const [status, schema] of Object.entries(res)) {
+        if (!schema) {
+          continue;
+        }
+
         if (!acc[status]) {
           acc[status] = [];
         }

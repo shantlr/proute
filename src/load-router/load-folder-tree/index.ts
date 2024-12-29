@@ -29,7 +29,10 @@ export const loadRouterModules = async (
   };
 };
 
-async function loadDirectory(dir: string, rootDir): Promise<ModuleTreeNode> {
+async function loadDirectory(
+  dir: string,
+  rootDir: string,
+): Promise<ModuleTreeNode> {
   const { name } = path.parse(path.relative(rootDir, dir));
   const result: ModuleTreeNode = {
     childen: {},
@@ -58,7 +61,7 @@ async function loadDirectory(dir: string, rootDir): Promise<ModuleTreeNode> {
         const moduleId = path.resolve(dir, file.name);
 
         const module: EndpointModule | MiddlewaresModule =
-          matched.groups.method === 'middlewares'
+          matched.groups?.method === 'middlewares'
             ? {
                 type: 'middleware',
                 id: moduleId,
@@ -72,19 +75,19 @@ async function loadDirectory(dir: string, rootDir): Promise<ModuleTreeNode> {
                     rootDir,
                     path.resolve(
                       dir,
-                      matched.groups.flatPath?.replace(
+                      matched.groups?.flatPath?.replace(
                         FLAT_FILE_NAME_TO_PATH,
                         '/',
                       ) ?? '',
                     ),
                   ),
                 ),
-                method: matched.groups.method as Method,
+                method: matched.groups?.method as Method,
               };
         pushModuleNode(
           result,
-          matched.groups.flatPath
-            ? matched.groups.flatPath.split(FLAT_FILE_NAME_SEPARATOR)
+          matched.groups?.flatPath
+            ? matched.groups?.flatPath.split(FLAT_FILE_NAME_SEPARATOR)
             : [],
           module,
         );

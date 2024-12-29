@@ -73,7 +73,7 @@ type ExtensibleEndpointConf<Conf extends AnyEndpointConf> = Conf & {
           HandlerParams & HandlerExtraParams
         >
       >
-    : never;
+    : ExtensibleEndpointConf<AnyEndpointConf>;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -94,15 +94,17 @@ export const baseEndpointConf = <Conf extends AnyEndpointConf>(
 ): ExtensibleEndpointConf<Conf> => {
   const r: ExtensibleEndpointConf<Conf> = {
     ...conf,
-    middleware: (param) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    middleware: (param: any) => {
       if (!param) {
         return r;
       }
 
       let middleware: AnyMiddlewareFn;
-      let extendedConf: { responses: AnyEndpointResponses };
+      let extendedConf: undefined | { responses: AnyEndpointResponses };
       if (typeof param === 'function') {
         middleware = param;
+        extendedConf = undefined;
       } else {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const input = param as Middleware<any, any, any>;
@@ -126,6 +128,9 @@ export const baseEndpointConf = <Conf extends AnyEndpointConf>(
   return r;
 };
 
+/**
+ * Create endpoint configuration
+ */
 export const endpointConf = <Conf extends AnyInputEndpointConf>(conf: Conf) => {
   return baseEndpointConf({
     ...conf,
@@ -141,14 +146,18 @@ export const endpointConf = <Conf extends AnyInputEndpointConf>(conf: Conf) => {
                 `[proute] '${conf.route?.expressPath}': query validation failed: ${err}`,
               );
             })
-          : {}) as InferOutput<Conf['query']>,
+          : {}) as Conf['query'] extends GenericSchema
+          ? InferOutput<Conf['query']>
+          : never,
         body: (conf.body
           ? parseDebug(conf.body, req.body, (err) => {
               console.warn(
                 `[proute] '${conf.route?.expressPath}': body validation failed: ${err}`,
               );
             })
-          : {}) as InferOutput<Conf['body']>,
+          : {}) as Conf['body'] extends GenericSchema
+          ? InferOutput<Conf['body']>
+          : never,
         params: parseDebug(conf.route.params, req.params, (err) => {
           console.warn(
             `[proute] '${conf.route?.expressPath}': params validation failed: ${err}`,
@@ -172,6 +181,8 @@ const parseDebug = <Schema extends GenericSchema>(
   }
 };
 
+/**
+ */
 export const createRoute = <Conf extends AnyEndpointConf>(module: {
   conf: Conf;
   handler: EndpointHandler<Conf>;
@@ -271,6 +282,7 @@ export const createRoute = <Conf extends AnyEndpointConf>(module: {
           ) {
             // check that redirect response is correct
             if (
+              mappedData &&
               typeof mappedData === 'object' &&
               'redirect_url' in mappedData
             ) {

@@ -46,9 +46,11 @@ export const createOpenapiJson = (
     },
     servers: specs.servers,
     tags: specs.tags,
-    paths: {},
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    paths: {} as Record<string, any>,
     components: {
-      schemas: {},
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      schemas: {} as Record<string, any>,
     },
   };
 
@@ -142,7 +144,14 @@ export const mapEndpointResponses = ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   resourceRefMap: Map<any, string>;
 }) => {
-  const res = {};
+  const res: Record<
+    string | number,
+    {
+      description: string;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      content?: any;
+    }
+  > = {};
 
   for (const [status, schema] of Object.entries(responses ?? {})) {
     if (schema === null) {
@@ -221,7 +230,8 @@ export const mapSchemaToOpenapi = (
   schema: unknown,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   resourceRefMap: Map<any, string> = new Map(),
-) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): any => {
   if (isUndefinedSchema(schema)) {
     return undefined;
   }
@@ -325,12 +335,20 @@ export const mapSchemaToOpenapi = (
     };
   }
   if (isUnionSchema(schema)) {
-    const optionSchemas = schema.options.map((opt) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const optionSchemas = schema.options.map((opt: any) =>
       mapSchemaToOpenapi(opt, resourceRefMap),
     );
     // merge literal
     const { stringEnums, others } = optionSchemas.reduce(
-      (acc, option) => {
+      (
+        acc: {
+          stringEnums: string[];
+          others: unknown[];
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        option: any,
+      ) => {
         if (option.type === 'string' && option.enum?.length) {
           acc.stringEnums.push(...option.enum);
         } else {

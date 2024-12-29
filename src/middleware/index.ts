@@ -20,7 +20,8 @@ export function createMiddleware<
   fn: MiddlewareFn<InputParams, AddedParams, NoInfer<Responses>>,
 ): Middleware<InputParams, AddedParams, NoInfer<Responses>>;
 
-export function createMiddleware(...args) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function createMiddleware(...args: any[]) {
   if (args.length === 1 && typeof args[0] === 'function') {
     return {
       responses: {},

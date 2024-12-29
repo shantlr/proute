@@ -35,6 +35,7 @@ export const sortExpressPathPriority = (
       }
       return splittedA[i].localeCompare(splittedB[i]);
     }
+    return 0;
   });
   return {
     modules,

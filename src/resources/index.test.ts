@@ -77,7 +77,7 @@ describe('resources', () => {
       const mapper = createResponseSchemaMapper(book);
       expect(mapper).toBeInstanceOf(Function);
       expect(
-        mapper({
+        mapper?.({
           id: '1',
           name: 'Book',
           author: 'Author',
@@ -101,7 +101,7 @@ describe('resources', () => {
       );
       expect(mapper).toBeInstanceOf(Function);
       expect(
-        mapper({
+        mapper?.({
           book: {
             id: '1',
             name: 'Book',
@@ -124,7 +124,7 @@ describe('resources', () => {
       const mapper = createResponseSchemaMapper(array(book));
       expect(mapper).toBeInstanceOf(Function);
       expect(
-        mapper([
+        mapper?.([
           {
             id: '1',
             name: 'Book',
@@ -168,7 +168,7 @@ describe('resources', () => {
       );
       expect(mapper).toBeInstanceOf(Function);
       expect(
-        mapper([
+        mapper?.([
           {
             book: {
               id: '1',
