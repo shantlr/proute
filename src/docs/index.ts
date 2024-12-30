@@ -18,6 +18,7 @@ import {
   isNumberSchema,
   isObjectSchema,
   isOptionalSchema,
+  isPicklist,
   isStringSchema,
   isUndefinedSchema,
   isUnionSchema,
@@ -280,6 +281,13 @@ export const mapSchemaToOpenapi = (
   if (isStringSchema(schema)) {
     return {
       type: 'string',
+      example: getSchemaExample(schema),
+    };
+  }
+  if (isPicklist(schema)) {
+    return {
+      type: 'string',
+      enum: schema.options,
       example: getSchemaExample(schema),
     };
   }

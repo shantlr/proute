@@ -171,12 +171,86 @@ const handler: EndpointHandler<typeof conf> = ({
 
 ### Middlewares
 
+The vite plugin will automatically generate a `proute.utils.ts` file. It will contain a helper named `createMiddleware` that allow you to create middlewares
+
+#### Add extra param to endpoint handler
+
+You can provide a function to `createMiddleware` that return param to be forwarded to any endpoint handler that use this middleware
+
+```ts
+export const addLogger = createMiddleware(({ req, res }) => {
+  return {
+    logger: createLogger(),
+  };
+});
+```
+
+```ts
+// src/router/books.get.ts
+
+const conf = expressConf(...).middleware(addLogger);
+
+// logger is now accessible from handler first argument
+const handler: EndpointHandler<typeof conf> = ({ logger }) => {
+
+}
+
+export default { conf, handler };
+```
+
+#### Authentication middleware
+
+```ts
+export const apiKeyAuthenticated = createMiddleware(
+  {
+    responses: {
+      401: picklist(['UNAUTHENTICATED', 'INVALID_SCHEME']),
+    },
+    security: ['ApiKey'],
+  },
+  async ({ req, res }) => {
+    const auth = req.headers.authorization;
+
+    if (!auth) {
+      return {
+        status: 401,
+        data: 'UNAUTHENTICATED',
+      };
+    }
+
+    if (!auth.startsWith('Bearer ')) {
+      return {
+        status: 401,
+        data: 'INVALID_SCHEME',
+      };
+    }
+    const apiKey = auth.slice(7);
+
+    // your implementation
+    if (!(await isValidApiKey(apiKey))) {
+      return {
+        status: 403,
+        data: '',
+      };
+    }
+    const roles = await getApiKeyRoles(apiKey);
+
+    return {
+      // you can then forward roles as extra param for endpoint handler/next middleware
+      extraParam: {
+        roles,
+      },
+    };
+  },
+);
+```
+
 ### Security Schemes
 
 You can create a config.ts file inside your router folder that will be automatically loaded.
 This config file should export a proute config object.
 
-```tsx
+```ts
 // src/router/config.ts
 import { prouteConfig } from 'proute';
 
@@ -192,7 +266,7 @@ export default prouteConfig({
 
 You can then specify that a route require this authentication scheme using the `security` field of the route conf
 
-```tsx
+```ts
 // src/router/books.get.ts
 
 const conf = expressConf(ROUTE.get['/books'], {
@@ -205,7 +279,7 @@ const conf = expressConf(ROUTE.get['/books'], {
 A middleware can also specify that it will require the authentication scheme.
 The `security` field will then be forwarded to any route that use this middleware
 
-```tsx
+```ts
 //...
 export const authenticated = createMiddleware(
   {

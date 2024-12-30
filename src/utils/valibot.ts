@@ -26,6 +26,7 @@ import {
   optional,
   UndefinedSchema,
   InferInput,
+  PicklistSchema,
 } from 'valibot';
 import { PickNonOptional } from '../ts-utils';
 
@@ -153,6 +154,10 @@ export const isUnionSchema = createSchemaPredicate<UnionSchema<any, any>>(
 
 export const isLiteralSchema = createSchemaPredicate<LiteralSchema<any, any>>(
   'literal',
+  'schema',
+);
+export const isPicklist = createSchemaPredicate<PicklistSchema<any, any>>(
+  'picklist',
   'schema',
 );
 

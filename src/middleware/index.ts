@@ -12,7 +12,7 @@ export const makeCreateMiddleware = <RouterConfig extends AnyProuteConfig>(
     InputParams extends { req: Request; res: Response },
     AddedParams extends AnyHandlerExtraParam,
   >(
-    fn: MiddlewareFn<InputParams, AddedParams, Record<PropertyKey, never>>,
+    fn: (params: InputParams) => AddedParams,
   ): Middleware<InputParams, AddedParams, Record<PropertyKey, never>>;
 
   function createMiddleware<
@@ -34,7 +34,13 @@ export const makeCreateMiddleware = <RouterConfig extends AnyProuteConfig>(
     if (args.length === 1 && typeof args[0] === 'function') {
       return {
         responses: {},
-        handler: args[0],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        handler: (param: any) => {
+          const extraParam = args[0](param);
+          return {
+            extraParam: extraParam,
+          };
+        },
       };
     }
     return {
