@@ -33,6 +33,7 @@ export type Middleware<
   Responses extends AnyEndpointResponses,
 > = {
   responses: Responses;
+  security?: string[];
   handler: MiddlewareFn<InputParams, HandlerExtraParam, Responses>;
 };
 

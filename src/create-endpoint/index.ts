@@ -102,7 +102,13 @@ export const baseEndpointConf = <Conf extends AnyEndpointConf>(
       }
 
       let middleware: AnyMiddlewareFn;
-      let extendedConf: undefined | { responses: AnyEndpointResponses };
+      let extendedConf:
+        | undefined
+        | {
+            responses: AnyEndpointResponses;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            security?: any[];
+          };
       if (typeof param === 'function') {
         middleware = param;
         extendedConf = undefined;
@@ -118,6 +124,7 @@ export const baseEndpointConf = <Conf extends AnyEndpointConf>(
         responses: extendedConf?.responses
           ? mergeResponses([conf.responses, extendedConf?.responses])
           : conf.responses,
+        security: [...(conf.security || []), ...(extendedConf?.security || [])],
         get middlewares() {
           return [...conf.middlewares, middleware];
         },

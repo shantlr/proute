@@ -39,7 +39,7 @@ export const generateRoutes = async (
   const configStat = await pathStat(configPath);
   if (configStat?.isFile()) {
     results.push(
-      `import routerConfig from '${formatImportPath(path.parse(outputRoutes).dir, configPath)}'`,
+      `import routerConfig from '${formatImportPath(path.parse(outputRoutes).dir, configPath)}';`,
     );
   }
 

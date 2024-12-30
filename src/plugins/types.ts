@@ -4,6 +4,12 @@ export type PluginOptions = {
    * @default `${options.inputPath}/resources.ts`
    */
   resourcesPath?: string;
+  configPath?: string;
+
+  /**
+   * @default `${options.inputPath}/proute.utils.ts`
+   */
+  outputUtils?: string;
   outputRouter?: string;
   /**
    * @default `${options.inputPath}/proute.routes.ts`
@@ -12,7 +18,6 @@ export type PluginOptions = {
   /**
    * @default `${options.inputPath}/config.ts`
    */
-  configPath?: string;
 
   docs?: {
     /**
@@ -48,4 +53,5 @@ export type ResolvedOptions = PluginOptions & {
   configPath: string;
   outputRouter: string;
   outputRoutes: string;
+  outputUtils: string;
 };

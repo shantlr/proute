@@ -12,7 +12,7 @@ export type {
 
 export { prouteConfig, ProuteConfig } from './create-config';
 
-export { createMiddleware } from './middleware';
+export { makeCreateMiddleware } from './middleware';
 
 export type { Method } from './types';
 
