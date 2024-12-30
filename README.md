@@ -17,11 +17,11 @@ Currently only support typescript and vite-node
     - [Middlewares](#middlewares)
       - [Add extra param to endpoint handler](#add-extra-param-to-endpoint-handler)
       - [Authentication middleware](#authentication-middleware)
-    - [Security Schemes](#security-schemes)
     - [File auto initializing](#file-auto-initializing)
     - [Docs](#docs)
       - [Enable docs](#enable-docs)
       - [Endpoint description](#endpoint-description)
+      - [Security Schemes](#security-schemes)
       - [Valibot action](#valibot-action)
 
 ## Overview
@@ -175,6 +175,7 @@ export default { conf, handler };
 import { endpointConf, EndpointHandler } from 'proute';
 import { ROUTES } from '../../base-conf.ts'; // 'base-conf' file is an auto generated file that expose the ROUTES object
 
+// Route params are automatically deduced from provided route, no schema is required 
 const conf = endpointConf(ROUTES.get['/products/:id'], {
   // ...
 });
@@ -224,7 +225,6 @@ export const apiKeyAuthenticated = createMiddleware(
     responses: {
       401: picklist(['UNAUTHENTICATED', 'INVALID_SCHEME']),
     },
-    security: ['ApiKey'],
   },
   async ({ req, res }) => {
     const auth = req.headers.authorization;
@@ -263,7 +263,49 @@ export const apiKeyAuthenticated = createMiddleware(
 );
 ```
 
-### Security Schemes
+### File auto initializing
+
+When the vite server is running, any empty endpoint file will be automatically initialized with a basic endpoint boilerplate
+
+### Docs
+
+Openapi documentation will be generated automatically based on valibots schemas
+
+#### Enable docs
+
+```ts
+// vite.config.ts
+import { defineConfig } from 'vitest/config';
+import { prouteVitePlugin } from 'proute/plugins/vite';
+
+export default defineConfig({
+  plugins: [
+    prouteVitePlugin({
+      // ...
+      docs: {
+        uiEndpoint: '/docs', // openapi ui using rapidocs
+        jsonEndpoint: '/docs/openapi.json', // default: $uiEndpoint/openapi.json`
+      },
+    }),
+  ],
+});
+```
+
+#### Endpoint description
+
+You can provide several metadata to `endpointConf` that will be included to the generated openapi json
+
+```ts
+// src/router/books.get.ts
+const conf = endpointConf(ROUTE.get['/books'] {
+  summary: 'Get books',
+  description: 'Get all books',
+  tags: ['books'],
+  // ...
+});
+```
+
+#### Security Schemes
 
 You can create a config.ts file inside your router folder that will be automatically loaded.
 This config file should export a proute config object.
@@ -313,47 +355,6 @@ export const authenticated = createMiddleware(
 );
 ```
 
-### File auto initializing
-
-When the vite server is running, any empty endpoint file will be automatically initialized with a basic endpoint boilerplate
-
-### Docs
-
-Openapi documentation will be generated automatically based on valibots schemas
-
-#### Enable docs
-
-```ts
-// vite.config.ts
-import { defineConfig } from 'vitest/config';
-import { prouteVitePlugin } from 'proute/plugins/vite';
-
-export default defineConfig({
-  plugins: [
-    prouteVitePlugin({
-      // ...
-      docs: {
-        uiEndpoint: '/docs', // openapi ui using rapidocs
-        jsonEndpoint: '/docs/openapi.json', // default: $uiEndpoint/openapi.json`
-      },
-    }),
-  ],
-});
-```
-
-#### Endpoint description
-
-You can provide several metadata to `endpointConf` that will be included to the generated openapi json
-
-```ts
-// src/router/books.get.ts
-const conf = endpointConf(ROUTE.get['/books'] {
-  summary: 'Get books',
-  description: 'Get all books',
-  tags: ['books'],
-  // ...
-});
-```
 
 #### Valibot action
 
