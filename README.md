@@ -20,9 +20,9 @@ Currently only support typescript and vite-node
     - [Security Schemes](#security-schemes)
     - [File auto intializing](#file-auto-intializing)
     - [Docs](#docs)
-    - [Enable docs](#enable-docs)
-    - [Endpoint description](#endpoint-description)
-    - [Valibot action](#valibot-action)
+      - [Enable docs](#enable-docs)
+      - [Endpoint description](#endpoint-description)
+      - [Valibot action](#valibot-action)
 
 ## Overview
 
@@ -321,7 +321,7 @@ When the vite server is running, any empty endpoint file will be automatically i
 
 Openapi documentation will be generated automatically based on valibots schemas
 
-### Enable docs
+#### Enable docs
 
 ```ts
 // vite.config.ts
@@ -341,7 +341,7 @@ export default defineConfig({
 });
 ```
 
-### Endpoint description
+#### Endpoint description
 
 You can provide several metadata to `endpointConf` that will be included to the generated openapi json
 
@@ -355,7 +355,7 @@ const conf = endpointConf(ROUTE.get['/books'] {
 });
 ```
 
-### Valibot action
+#### Valibot action
 
 Valibot action can be used to add extra validation / metadata
 
