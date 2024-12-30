@@ -10,6 +10,8 @@ export type {
   EndpointHandler,
 } from './create-endpoint/types';
 
+export { prouteConfig, ProuteConfig } from './create-config';
+
 export { createMiddleware } from './middleware';
 
 export type { Method } from './types';

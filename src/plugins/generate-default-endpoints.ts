@@ -3,10 +3,13 @@ import { RouterModules } from '../load-router/load-folder-tree/types';
 import { formatImportPath } from '../utils/import-path';
 import path from 'path';
 
+/**
+ * Generate default endpoint code for empty files
+ */
 export const generateDefaultEndpoints = async (
   router: RouterModules,
   options: {
-    outputBaseConf: string;
+    outputRoutes: string;
   },
 ) => {
   await Promise.all(
@@ -20,12 +23,16 @@ export const generateDefaultEndpoints = async (
       lines.push(`import { object } from 'valibot';`);
       lines.push('');
       lines.push(
-        `import { ROUTES } from '${formatImportPath(path.parse(module.id).dir, options.outputBaseConf)}';`,
+        `import { ROUTES } from '${formatImportPath(
+          path.parse(module.id).dir,
+          options.outputRoutes,
+        )}';`,
       );
       lines.push('');
 
-      lines.push(`const conf = endpointConf({`);
-      lines.push(`  route: ROUTES.${module.method}['${module.expressPath}'],`);
+      lines.push(
+        `const conf = endpointConf(ROUTES.${module.method}['${module.expressPath}'], {`,
+      );
       lines.push(`  responses: {`);
       lines.push(`    200: object({}),`);
       lines.push(`  },`);

@@ -1,8 +1,19 @@
 export type PluginOptions = {
   inputPath: string;
+  /**
+   * @default `${options.inputPath}/resources.ts`
+   */
   resourcesPath?: string;
   outputRouter?: string;
-  outputBaseConf?: string;
+  /**
+   * @default `${options.inputPath}/proute.routes.ts`
+   */
+  outputRoutes?: string;
+  /**
+   * @default `${options.inputPath}/config.ts`
+   */
+  configPath?: string;
+
   docs?: {
     /**
      * Enable or disable all docs features
@@ -34,6 +45,7 @@ export type PluginOptions = {
 };
 export type ResolvedOptions = PluginOptions & {
   resourcesPath: string;
+  configPath: string;
   outputRouter: string;
-  outputBaseConf: string;
+  outputRoutes: string;
 };

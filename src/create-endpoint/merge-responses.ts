@@ -1,25 +1,34 @@
-import { GenericSchema, union, UnionSchema } from 'valibot';
+import { GenericSchema, UndefinedSchema, union, UnionSchema } from 'valibot';
 import { AnyEndpointResponses } from '../types';
+
+type MapSchema<Schema extends GenericSchema | null> =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Schema extends UndefinedSchema<any> ? null : Schema;
+
+type MergeSchema<
+  SchemaA extends GenericSchema | null,
+  SchemaB extends GenericSchema | null,
+> = SchemaA extends GenericSchema
+  ? SchemaB extends GenericSchema
+    ? UnionSchema<[SchemaA, SchemaB], undefined>
+    : SchemaA | null
+  : SchemaB | null;
 
 export type MergeResponse<
   ResponsesA extends AnyEndpointResponses,
   ResponsesB extends AnyEndpointResponses,
-> = {
-  [Status in
-    | keyof ResponsesA
-    | keyof ResponsesB]: Status extends keyof ResponsesA
-    ? ResponsesA[Status] extends GenericSchema
-      ? Status extends keyof ResponsesB
-        ? ResponsesB[Status] extends GenericSchema
-          ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            UnionSchema<(ResponsesA[Status] | ResponsesB[Status])[], any>
-          : ResponsesA[Status]
-        : ResponsesA[Status]
-      : ResponsesA[Status]
-    : Status extends keyof ResponsesB
-      ? ResponsesB[Status]
-      : never;
-};
+  CommonKeys extends keyof ResponsesA & keyof ResponsesB = keyof ResponsesA &
+    keyof ResponsesB,
+> = Omit<ResponsesA, CommonKeys> &
+  Omit<ResponsesB, CommonKeys> & {
+    [Key in CommonKeys]: ResponsesA[Key] extends GenericSchema
+      ? ResponsesB[Key] extends GenericSchema
+        ? MergeSchema<MapSchema<ResponsesA[Key]>, MapSchema<ResponsesB[Key]>>
+        : ResponsesA[Key]
+      : ResponsesB[Key] extends GenericSchema
+        ? ResponsesB[Key]
+        : null;
+  };
 
 export const mergeResponses = (
   responses: AnyEndpointResponses[],

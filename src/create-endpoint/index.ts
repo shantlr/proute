@@ -2,6 +2,7 @@ import { RequestHandler } from 'express';
 import {
   AnyEndpointConf,
   AnyInputEndpointConf,
+  AnyRouteConfig,
   EndpointConf,
   EndpointHandler,
   EndpointHandlerParam,
@@ -131,8 +132,15 @@ export const baseEndpointConf = <Conf extends AnyEndpointConf>(
 /**
  * Create endpoint configuration
  */
-export const endpointConf = <Conf extends AnyInputEndpointConf>(conf: Conf) => {
+export const endpointConf = <
+  Route extends AnyRouteConfig,
+  Conf extends AnyInputEndpointConf<Route>,
+>(
+  route: Route,
+  conf: Conf,
+) => {
   return baseEndpointConf({
+    route,
     ...conf,
     get middlewares() {
       return [];
@@ -143,7 +151,7 @@ export const endpointConf = <Conf extends AnyInputEndpointConf>(conf: Conf) => {
         query: (conf.query
           ? parseDebug(conf.query, req.query, (err) => {
               console.warn(
-                `[proute] '${conf.route?.expressPath}': query validation failed: ${err}`,
+                `[proute] '${route?.expressPath}': query validation failed: ${err}`,
               );
             })
           : {}) as Conf['query'] extends GenericSchema
@@ -152,17 +160,17 @@ export const endpointConf = <Conf extends AnyInputEndpointConf>(conf: Conf) => {
         body: (conf.body
           ? parseDebug(conf.body, req.body, (err) => {
               console.warn(
-                `[proute] '${conf.route?.expressPath}': body validation failed: ${err}`,
+                `[proute] '${route?.expressPath}': body validation failed: ${err}`,
               );
             })
           : {}) as Conf['body'] extends GenericSchema
           ? InferOutput<Conf['body']>
           : never,
-        params: parseDebug(conf.route.params, req.params, (err) => {
+        params: parseDebug(route.params, req.params, (err) => {
           console.warn(
-            `[proute] '${conf.route?.expressPath}': params validation failed: ${err}`,
+            `[proute] '${route?.expressPath}': params validation failed: ${err}`,
           );
-        }) as InferOutput<Conf['route']['params']>,
+        }) as InferOutput<Route['params']>,
       },
     };
   });

@@ -2,13 +2,16 @@ import { GenericSchema } from 'valibot';
 import type { Request, Response } from 'express';
 import { AnyEndpointResponses, EndpointResponseInput } from '../types';
 import { MiddlewareFn } from '../middleware/types';
+import { AnyOpenApiSecuritySchemes, OpenApiRouteSecurity } from '../docs/types';
 
-export type RouteConfig = {
+export type RouteConfig<SecuritySchemes extends AnyOpenApiSecuritySchemes> = {
   expressPath: string;
   params: GenericSchema;
+  securitySchemes?: SecuritySchemes;
 };
 
-export type AnyRouteConfig = RouteConfig;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyRouteConfig = RouteConfig<any>;
 
 export type EndpointConf<
   Route extends AnyRouteConfig,
@@ -24,6 +27,8 @@ export type EndpointConf<
   query?: QueryParams;
   body?: Body;
   responses: Responses;
+
+  security?: OpenApiRouteSecurity<Route['securitySchemes']>[];
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   get middlewares(): MiddlewareFn<HandlerParams, any, any>[];
@@ -58,15 +63,16 @@ export type InputEndpointConf<
       res: Response;
     }
   >,
-  'middlewares' | '_params'
+  'middlewares' | '_params' | 'route'
 >;
-export type AnyInputEndpointConf = InputEndpointConf<
-  AnyRouteConfig,
-  GenericSchema,
-  GenericSchema,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  any
->;
+export type AnyInputEndpointConf<Route extends AnyRouteConfig> =
+  InputEndpointConf<
+    Route,
+    GenericSchema,
+    GenericSchema,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    any
+  >;
 
 export type EndpointHandlerParam<Conf extends AnyEndpointConf> =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

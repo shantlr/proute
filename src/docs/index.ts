@@ -24,18 +24,26 @@ import {
   isWithPipeSchema,
 } from '../utils/valibot';
 import { isResource } from '../resources';
+import { AnyProuteConfig } from '../create-config';
+import { AnyEndpointConf } from '../create-endpoint/types';
 
-export const createOpenapiJson = (
+export const createOpenapiJson = ({
+  specs,
+  routerConfig,
+  resources,
+  endpoints,
+}: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  specs: Record<string, any>,
+  specs: Record<string, any>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  resources: Record<string, any>,
+  resources: Record<string, any>;
+  routerConfig?: AnyProuteConfig;
   endpoints: {
     method: Method;
     path: string;
     module: unknown;
-  }[],
-) => {
+  }[];
+}) => {
   const json = {
     openapi: '3.0.0',
     info: {
@@ -49,6 +57,7 @@ export const createOpenapiJson = (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     paths: {} as Record<string, any>,
     components: {
+      securitySchemes: routerConfig?.securitySchemes ?? {},
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       schemas: {} as Record<string, any>,
     },
@@ -75,22 +84,23 @@ export const createOpenapiJson = (
       if (!json.paths[endpointPath]) {
         json.paths[endpointPath] = {};
       }
-      const { conf } = endpoint.module;
+      const { conf: routeConf } = endpoint.module;
 
       json.paths[endpointPath][endpoint.method] = {
-        summary: conf.summary ?? '',
-        description: conf.description ?? '',
-        tags: conf.tags ?? [endpointPath.split('/')[1]],
+        summary: routeConf.summary ?? '',
+        description: routeConf.description ?? '',
+        tags: routeConf.tags ?? [endpointPath.split('/')[1]],
+        security: mapEndpointSecurity(routeConf.security),
         parameters: mapEndpointParams({
-          params: conf.route.params,
-          query: conf.query,
+          params: routeConf.route.params,
+          query: routeConf.query,
         }),
         requestBody: mapEndpointRequestBody({
-          body: conf.body,
+          body: routeConf.body,
           resourceRefMap,
         }),
         responses: mapEndpointResponses({
-          responses: conf.responses,
+          responses: routeConf.responses,
           resourceRefMap,
         }),
       };
@@ -136,6 +146,29 @@ const mapEndpointRequestBody = ({
   };
 };
 
+const mapEndpointSecurity = (security: AnyEndpointConf['security']) => {
+  if (!security) {
+    return undefined;
+  }
+
+  return security.map((security) => {
+    if (typeof security === 'string') {
+      return { [security]: [] };
+    }
+
+    if (security && typeof security === 'object') {
+      return Object.fromEntries(
+        Object.entries(security).map(([key, value]) => {
+          if (value === true) {
+            return [key, []];
+          }
+          return [key, value];
+        }),
+      );
+    }
+  });
+};
+
 export const mapEndpointResponses = ({
   responses,
   resourceRefMap,
@@ -162,7 +195,7 @@ export const mapEndpointResponses = ({
     }
     if (isStringSchema(schema)) {
       res[status] = {
-        description: getSchemaDescription(schema),
+        description: getSchemaDescription(schema) ?? '',
         content: {
           'text/plain': {
             schema: mapSchemaToOpenapi(schema),
@@ -173,7 +206,7 @@ export const mapEndpointResponses = ({
     }
 
     res[status] = {
-      description: getSchemaDescription(schema),
+      description: getSchemaDescription(schema) ?? '',
       content: !isEmptyContentSchema(schema)
         ? {
             'application/json': {
@@ -226,6 +259,10 @@ export const mapEndpointParams = ({
 //endregion
 
 //region Schema to openapi
+
+/**
+ * map valibot schema to openapi type schema
+ */
 export const mapSchemaToOpenapi = (
   schema: unknown,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -273,26 +310,34 @@ export const mapSchemaToOpenapi = (
   }
 
   if (isObjectSchema(schema)) {
+    const info = Object.entries(
+      schema.entries as Record<string, GenericSchema>,
+    ).reduce(
+      (acc, [key, value]) => {
+        acc.properties[key] = mapSchemaToOpenapi(value, resourceRefMap);
+        if (
+          !isOptionalSchema(value) &&
+          !isNullableSchema(value) &&
+          !isNullishSchema(value)
+        ) {
+          acc.required?.push(key);
+        }
+        return acc;
+      },
+      {
+        properties: {},
+        required: [],
+      } as {
+        properties: Record<string, unknown>;
+        required?: string[];
+      },
+    );
+    if (info.required?.length === 0) {
+      delete info.required;
+    }
     return {
       type: 'object',
-      ...Object.entries(schema.entries as Record<string, GenericSchema>).reduce(
-        (acc, [key, value]) => {
-          acc.properties[key] = mapSchemaToOpenapi(value, resourceRefMap);
-          if (
-            !isOptionalSchema(value) &&
-            !isNullableSchema(value) &&
-            !isNullishSchema(value)
-          ) {
-            acc.required.push(key);
-          }
-          return acc;
-        },
-        {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          properties: {} as Record<string, any>,
-          required: [] as string[],
-        },
-      ),
+      ...info,
       example: getSchemaExample(schema),
     };
   }

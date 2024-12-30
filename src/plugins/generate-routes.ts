@@ -20,30 +20,39 @@ const formatFieldName = (name: string) => {
   return `'${name}'`;
 };
 
-export const generateBaseConf = async (
+export const generateRoutes = async (
   routerModules: RouterModules,
   {
     resourcesPath,
-    outputBaseConf,
+    configPath,
+    outputRoutes,
   }: {
     resourcesPath: string;
-    outputBaseConf: string;
+    configPath: string;
+    outputRoutes: string;
   },
 ) => {
   const results = [GENERATED_BASE_CONF_HEADER, ''];
   results.push(`import { createResourceMap } from 'proute';`);
   results.push(`import { object, string } from 'valibot';`);
 
-  const resPath = await pathStat(resourcesPath);
-  if (resPath?.isFile()) {
+  const configStat = await pathStat(configPath);
+  if (configStat?.isFile()) {
     results.push(
-      '',
-      `import * as resources from '${formatImportPath(path.parse(outputBaseConf).dir, resourcesPath)}';`,
+      `import routerConfig from '${formatImportPath(path.parse(outputRoutes).dir, configPath)}'`,
     );
-
-    results.push(`export const RESOURCES = createResourceMap(resources);`, '');
   }
 
+  const resourcesStat = await pathStat(resourcesPath);
+  if (resourcesStat?.isFile()) {
+    results.push(
+      `import * as resources from '${formatImportPath(path.parse(outputRoutes).dir, resourcesPath)}';`,
+    );
+
+    results.push(`export const RESOURCES = createResourceMap(resources);`);
+  }
+
+  results.push('');
   results.push(`export const ROUTES = {`);
 
   const byMethod = routerModules.modules.reduce(
@@ -68,6 +77,12 @@ export const generateBaseConf = async (
         const params = extractParams(module.expressPath);
         results.push(`    '${module.expressPath}': {`);
         results.push(`      expressPath: '${module.expressPath}',`);
+
+        if (configStat?.isFile()) {
+          results.push(`      securitySchemes: routerConfig?.securitySchemes,`);
+        }
+
+        //#region Route params
         if (params.length === 0) {
           results.push(`      params: object({}),`);
         } else {
@@ -77,6 +92,8 @@ export const generateBaseConf = async (
           });
           results.push(`      }),`);
         }
+        //#endregion
+
         results.push(`    },`);
       }
     }
