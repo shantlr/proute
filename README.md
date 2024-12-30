@@ -18,7 +18,7 @@ Currently only support typescript and vite-node
       - [Add extra param to endpoint handler](#add-extra-param-to-endpoint-handler)
       - [Authentication middleware](#authentication-middleware)
     - [Security Schemes](#security-schemes)
-    - [File auto intializing](#file-auto-intializing)
+    - [File auto initializing](#file-auto-initializing)
     - [Docs](#docs)
       - [Enable docs](#enable-docs)
       - [Endpoint description](#endpoint-description)
@@ -54,15 +54,15 @@ export default defineConfig({
   plugins: [
     prouteVitePlugin({
       inputPath: './src/router', // folder where you are residing your endpoints files
-      outputRouter: './src/router/index.ts', // file where the router will be generated, default: $inputPath/index.ts
-      outputBaseConf: './src/router/base-conf.ts', // file where utils will be generated, default: $inputPath/base-conf.ts
-      resourcesPath: './src/router/resources.ts', // file that exports resources schemas, default: $inputPath/resources.ts
+      resourcesPath: './src/router/resources.ts', // file that exports resources schemas
+      outputRouter: './src/router/proute.generated.router.ts', // file where the router will be generated
+      outputRoutes: './src/router/proute.generated.routes.ts', // file where routes definitions will be generated
     }),
   ],
 });
 ```
 
-When vite-node server is started, the plugin will automatically generate a file at $inputPath which will export a `router`
+When vite-node server is started, the plugin will automatically generate a file at $outputPath which will export a `router`
 
 Which can then be used with express app
 
@@ -70,7 +70,7 @@ Which can then be used with express app
 // src/index.ts
 import express from 'express';
 import bodyParser from 'body-parser';
-import { router } from './src/router';
+import { router } from './src/router/proute.generated.router';
 const app = express();
 
 // NOTE: proute will not parse body by itself and expect
@@ -313,7 +313,7 @@ export const authenticated = createMiddleware(
 );
 ```
 
-### File auto intializing
+### File auto initializing
 
 When the vite server is running, any empty endpoint file will be automatically initialized with a basic endpoint boilerplate
 
