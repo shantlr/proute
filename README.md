@@ -6,6 +6,24 @@ Typed file based express router
 
 Currently only support typescript and vite-node
 
+- [proute](#proute)
+  - [Overview](#overview)
+  - [Getting started](#getting-started)
+    - [Installation](#installation)
+    - [Setup](#setup)
+  - [Features](#features)
+    - [File based routing](#file-based-routing)
+    - [Endpoint handler](#endpoint-handler)
+    - [Middlewares](#middlewares)
+      - [Add extra param to endpoint handler](#add-extra-param-to-endpoint-handler)
+      - [Authentication middleware](#authentication-middleware)
+    - [Security Schemes](#security-schemes)
+    - [File auto intializing](#file-auto-intializing)
+    - [Docs](#docs)
+    - [Enable docs](#enable-docs)
+    - [Endpoint description](#endpoint-description)
+    - [Valibot action](#valibot-action)
+
 ## Overview
 
 - File based routing
