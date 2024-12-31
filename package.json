@@ -7,6 +7,9 @@
     "./README.md",
     "./package.json"
   ],
+  "repository": {
+    "url": "https://github.com/shantlr/proute"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
