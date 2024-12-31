@@ -336,7 +336,7 @@ const conf = expressConf(ROUTE.get['/books'], {
 // ...
 ```
 
-A middleware can also specify that it will require the authentication scheme.
+A middleware can also specify that it will apply the authentication scheme.
 The `security` field will then be forwarded to any route that use this middleware
 
 ```ts

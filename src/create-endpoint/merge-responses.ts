@@ -1,4 +1,10 @@
-import { GenericSchema, UndefinedSchema, union, UnionSchema } from 'valibot';
+import {
+  GenericSchema,
+  nullable,
+  UndefinedSchema,
+  union,
+  UnionSchema,
+} from 'valibot';
 import { AnyEndpointResponses } from '../types';
 
 type MapSchema<Schema extends GenericSchema | null> =
@@ -36,10 +42,6 @@ export const mergeResponses = (
   const groupedByStatus = responses.reduce(
     (acc, res) => {
       for (const [status, schema] of Object.entries(res)) {
-        if (!schema) {
-          continue;
-        }
-
         if (!acc[status]) {
           acc[status] = [];
         }
@@ -47,7 +49,7 @@ export const mergeResponses = (
       }
       return acc;
     },
-    {} as Record<PropertyKey, GenericSchema[]>,
+    {} as Record<PropertyKey, (GenericSchema | null)[]>,
   );
 
   return Object.fromEntries(
@@ -55,7 +57,30 @@ export const mergeResponses = (
       if (schemas.length === 1) {
         return [status, schemas[0]];
       }
-      return [status, union(schemas)];
+      const res = schemas.reduce(
+        (acc, schema) => {
+          if (schema === null) {
+            acc.withNull = true;
+          } else {
+            acc.schemas.push(schema);
+          }
+          return acc;
+        },
+        {
+          schemas: [] as GenericSchema[],
+          withNull: false,
+        },
+      );
+
+      if (res.withNull && !res.schemas.length) {
+        return [status, null];
+      }
+
+      if (res.schemas.length > 0 && !res.withNull) {
+        return [status, union(res.schemas)];
+      }
+
+      return [status, nullable(union([...res.schemas]))];
     }),
   );
 };
