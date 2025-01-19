@@ -1,10 +1,10 @@
 {
   "compilerOptions": {
-    "target": "ES2018",
+    "target": "ES2022",
     "esModuleInterop": true,
     "types": ["node", "vitest/globals"],
-    "moduleResolution": "NodeNext",
-    "module": "NodeNext",
+    "moduleResolution": "bundler",
+    "module": "ES2022",
     "declaration": true,
     "declarationMap": true,
     "declarationDir": "dist",

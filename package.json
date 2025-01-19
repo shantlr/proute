@@ -10,14 +10,22 @@
   "repository": {
     "url": "https://github.com/shantlr/proute"
   },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/cjs/index.cjs",
+  "types": "./dist/esm/index.d.ts",
+  "module": "./dist/esm/index.js",
+  "type": "module",
   "exports": {
-    ".": "./dist/index.js",
-    "./plugins/vite": "./dist/plugins/vite.js"
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
+    },
+    "./plugins/vite": {
+      "import": "./dist/esm/plugin.vite.js",
+      "require": "./dist/cjs/plugin.vite.js"
+    }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsup",
     "prepare": "yarn build",
     "test": "vitest",
     "ts-check": "tsc --noEmit"
@@ -31,6 +39,7 @@
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.2.1",
     "prettier": "^3.3.3",
+    "tsup": "^8.3.5",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.13.0",
     "vitest": "^2.1.4"
