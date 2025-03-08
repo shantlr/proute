@@ -13,7 +13,8 @@ export const makeCreateMiddleware = <RouterConfig extends AnyProuteConfig>(
     AddedParams extends AnyHandlerExtraParam,
   >(
     fn: (params: InputParams) => AddedParams | Promise<AddedParams>,
-  ): Middleware<InputParams, Awaited<AddedParams>, Record<PropertyKey, never>>;
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  ): Middleware<InputParams, Awaited<AddedParams>, {}>;
 
   function createMiddleware<
     InputParams extends { req: Request; res: Response },
