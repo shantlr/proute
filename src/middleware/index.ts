@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, RequestHandler, Response } from 'express';
 import { AnyHandlerExtraParam, Middleware, MiddlewareFn } from './types';
 import { AnyEndpointResponses } from '../types';
 import { AnyProuteConfig } from '../create-config';
@@ -12,8 +12,8 @@ export const makeCreateMiddleware = <RouterConfig extends AnyProuteConfig>(
     InputParams extends { req: Request; res: Response },
     AddedParams extends AnyHandlerExtraParam,
   >(
-    fn: (params: InputParams) => AddedParams,
-  ): Middleware<InputParams, AddedParams, Record<PropertyKey, never>>;
+    fn: (params: InputParams) => AddedParams | Promise<AddedParams>,
+  ): Middleware<InputParams, Awaited<AddedParams>, Record<PropertyKey, never>>;
 
   function createMiddleware<
     InputParams extends { req: Request; res: Response },
@@ -32,11 +32,12 @@ export const makeCreateMiddleware = <RouterConfig extends AnyProuteConfig>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function createMiddleware(...args: any[]) {
     if (args.length === 1 && typeof args[0] === 'function') {
+      const resolveExtraParams = args[0];
       return {
         responses: {},
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        handler: (param: any) => {
-          const extraParam = args[0](param);
+        handler: async (param: any) => {
+          const extraParam = await resolveExtraParams(param);
           return {
             extraParam: extraParam,
           };
@@ -66,24 +67,32 @@ export const makeCreateMiddleware = <RouterConfig extends AnyProuteConfig>(
 //   };
 // }
 
-// export const convertExpressMiddleware = (expressMiddleware: RequestHandler) => {
-//   return createMiddleware(({ req, res }) => {
-//     return new Promise((resolve, reject) => {
-//       const listener = () => {
-//         resolve();
-//       };
-//       res.once('close', listener);
+export const convertExpressMiddleware = <
+  ExtraParam = Record<PropertyKey, never>,
+>(
+  expressMiddleware: RequestHandler,
+  resolveExtraParams: (arg: {
+    req: Request;
+    res: Response;
+  }) => ExtraParam = () => ({}) as ExtraParam,
+) => {
+  return ({ req, res }: { req: Request; res: Response }) => {
+    return new Promise<ExtraParam>((resolve, reject) => {
+      const listener = () => {
+        reject(new Error('Response closed before middleware finished'));
+      };
+      res.once('close', listener);
 
-//       expressMiddleware(req, res, (err) => {
-//         res.off('close', listener);
+      expressMiddleware(req, res, (err) => {
+        res.off('close', listener);
 
-//         if (err) {
-//           reject(err);
-//           return;
-//         }
+        if (err) {
+          reject(err);
+          return;
+        }
 
-//         resolve();
-//       });
-//     });
-//   });
-// };
+        resolve(resolveExtraParams({ req, res }));
+      });
+    });
+  };
+};

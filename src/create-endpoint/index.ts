@@ -233,6 +233,7 @@ export const createRoute = <Conf extends AnyEndpointConf>(module: {
           req,
           res,
         };
+
         for (const stepHandler of handlers) {
           if (res.headersSent) {
             // Request already handled
@@ -257,13 +258,7 @@ export const createRoute = <Conf extends AnyEndpointConf>(module: {
             return;
           }
 
-          if (!(stepRes.status in conf.responses)) {
-            console.warn(
-              `[proute] '${conf.route?.expressPath}': Unknown status code: ${String(stepRes.status)}`,
-            );
-            return;
-          }
-
+          //#region Handle response cookies
           if (stepRes.cookies) {
             for (const [key, value] of Object.entries(stepRes.cookies)) {
               if (value === null) {
@@ -286,10 +281,17 @@ export const createRoute = <Conf extends AnyEndpointConf>(module: {
               }
             }
           }
+          //#endregion
 
-          const mappedData = responsesMapper[stepRes.status](stepRes.data);
+          //#region Map response data
+          const mappedData = await responsesMapper[stepRes.status](
+            stepRes.data,
+          );
 
-          // redirect
+          console.log('DEBUG', stepRes, '=>', mappedData);
+          //#endregion
+
+          //#region redirect
           if (
             typeof stepRes.status === 'number' &&
             stepRes.status >= 300 &&
@@ -327,6 +329,7 @@ export const createRoute = <Conf extends AnyEndpointConf>(module: {
             res.status(500).send();
             return;
           }
+          //#endregion
 
           res.status(stepRes.status as unknown as number).send(mappedData);
         }

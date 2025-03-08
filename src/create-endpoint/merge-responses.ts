@@ -1,8 +1,11 @@
 import {
   GenericSchema,
+  GenericSchemaAsync,
   nullable,
+  nullableAsync,
   UndefinedSchema,
   union,
+  unionAsync,
   UnionSchema,
 } from 'valibot';
 import { AnyEndpointResponses } from '../types';
@@ -49,7 +52,7 @@ export const mergeResponses = (
       }
       return acc;
     },
-    {} as Record<PropertyKey, (GenericSchema | null)[]>,
+    {} as Record<PropertyKey, (GenericSchema | GenericSchemaAsync | null)[]>,
   );
 
   return Object.fromEntries(
@@ -57,6 +60,7 @@ export const mergeResponses = (
       if (schemas.length === 1) {
         return [status, schemas[0]];
       }
+
       const res = schemas.reduce(
         (acc, schema) => {
           if (schema === null) {
@@ -67,7 +71,7 @@ export const mergeResponses = (
           return acc;
         },
         {
-          schemas: [] as GenericSchema[],
+          schemas: [] as (GenericSchema | GenericSchemaAsync)[],
           withNull: false,
         },
       );
@@ -76,11 +80,22 @@ export const mergeResponses = (
         return [status, null];
       }
 
-      if (res.schemas.length > 0 && !res.withNull) {
-        return [status, union(res.schemas)];
+      let merged: GenericSchema | GenericSchemaAsync;
+      if (res.schemas.some((s) => s.async)) {
+        merged = unionAsync(res.schemas as GenericSchemaAsync[]);
+      } else {
+        merged = union(res.schemas as GenericSchema[]);
       }
 
-      return [status, nullable(union([...res.schemas]))];
+      if (res.withNull) {
+        if (merged.async) {
+          merged = nullableAsync(merged);
+        } else {
+          merged = nullable(merged);
+        }
+      }
+
+      return [status, merged];
     }),
   );
 };

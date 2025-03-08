@@ -1,5 +1,6 @@
 import {
   GenericSchema,
+  GenericSchemaAsync,
   InferInput,
   InferObjectInput,
   ObjectSchema,
@@ -15,7 +16,10 @@ export type Method =
   | 'options'
   | 'head';
 
-export type AnyEndpointResponses = Record<number, GenericSchema | null>;
+export type AnyEndpointResponses = Record<
+  number,
+  GenericSchema | GenericSchemaAsync | null
+>;
 
 export type EndpointResponseInput<Responses extends AnyEndpointResponses> = {
   [K in keyof Responses]: {
@@ -58,6 +62,6 @@ type MapEndpointReturnType<Schema> =
               ObjectFields[K]
             >;
           }
-        : Schema extends GenericSchema
+        : Schema extends GenericSchema | GenericSchemaAsync
           ? InferInput<Schema>
           : undefined | null;

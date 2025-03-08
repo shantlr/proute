@@ -12,11 +12,15 @@ export type {
 
 export { prouteConfig, ProuteConfig } from './create-config';
 
-export { makeCreateMiddleware } from './middleware';
+export { makeCreateMiddleware, convertExpressMiddleware } from './middleware';
 
 export type { Method } from './types';
 
-export { createResourceMap, createResource } from './resources';
+export {
+  createResourceMap,
+  createResource,
+  createResourceAsync,
+} from './resources';
 export { example, redirect } from './utils/valibot';
 
 export { identity, returnType, combineReturnTypes } from './resources/helpers';

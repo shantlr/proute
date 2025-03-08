@@ -1,8 +1,10 @@
 import {
   _getStandardProps,
   BaseSchema,
+  BaseSchemaAsync,
   CustomIssue,
   GenericSchema,
+  GenericSchemaAsync,
   InferOutput,
   OutputDataset,
 } from 'valibot';
@@ -17,6 +19,16 @@ export type ResourceSchema<Input, Output> = BaseSchema<
   output: Output;
 
   mapResource: (value: Input) => Output;
+};
+
+export type AsyncResourceSchema<Input, Output> = BaseSchemaAsync<
+  Input,
+  Output,
+  CustomIssue
+> & {
+  output: Output;
+
+  mapResource: (value: Input) => Promise<Output>;
 };
 
 export const createResource = <Input, Output extends GenericSchema>(arg: {
@@ -54,12 +66,46 @@ export const createResource = <Input, Output extends GenericSchema>(arg: {
     },
   };
 };
-export const createAsyncResource = () => {
-  //
+export const createResourceAsync = <Input, Output extends GenericSchema>(arg: {
+  input: GenericSchema<Input> | ((arg: Input) => Input);
+  output: Output;
+  map: (input: Input) => Promise<InferOutput<Output>>;
+}): AsyncResourceSchema<Input, InferOutput<Output>> => {
+  return {
+    kind: 'schema' as const,
+    type: 'proute/resource',
+    reference: createResourceAsync,
+    expects: 'unknown',
+    async: true,
+
+    output: arg.output,
+
+    mapResource: (value) => {
+      return arg.map(value as Input);
+    },
+
+    get '~standard'() {
+      return _getStandardProps(this);
+    },
+
+    async '~run'(dataset) {
+      // no check for input type
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mappedValue = (await arg.map(dataset.value as Input)) as any;
+      dataset.value = mappedValue;
+      return dataset as unknown as OutputDataset<
+        InferOutput<Output>,
+        CustomIssue
+      >;
+    },
+  };
 };
 
 export type ResourceMap<T> = FlattenType<{
-  [K in keyof T]: T[K] extends GenericSchema ? T[K] : never;
+  [K in keyof T]: T[K] extends GenericSchema | GenericSchemaAsync
+    ? T[K]
+    : never;
 }>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const createResourceMap = <T extends Record<string, any>>(
@@ -109,10 +155,16 @@ export const createResponseSchemaMapper = (
         );
 
         if (mapField) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          acc.push((value: Record<string, any>) => {
-            value[fieldName] = mapField(value[fieldName]);
-          });
+          if (schema.async) {
+            acc.push(async (value: Record<string, unknown>) => {
+              value[fieldName] = await mapField(value[fieldName]);
+            });
+          } else {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            acc.push((value: Record<string, any>) => {
+              value[fieldName] = mapField(value[fieldName]);
+            });
+          }
         }
 
         return acc;
@@ -124,6 +176,14 @@ export const createResponseSchemaMapper = (
     if (!mappers.length) {
       // no fields require mapping
       return undefined;
+    }
+
+    if (schema.async) {
+      return async (value: Record<string, unknown>) => {
+        const shallow = { ...value };
+        await Promise.all(mappers.map((mapField) => mapField(shallow)));
+        return shallow;
+      };
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -139,6 +199,11 @@ export const createResponseSchemaMapper = (
     if (!mapItem) {
       // item does not require mapping
       return undefined;
+    }
+    if (schema.async) {
+      return (value: unknown[]) => {
+        return Promise.all(value.map((item) => mapItem(item)));
+      };
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (value: any[]) => {
