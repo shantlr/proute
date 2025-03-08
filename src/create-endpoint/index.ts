@@ -287,8 +287,6 @@ export const createRoute = <Conf extends AnyEndpointConf>(module: {
           const mappedData = await responsesMapper[stepRes.status](
             stepRes.data,
           );
-
-          console.log('DEBUG', stepRes, '=>', mappedData);
           //#endregion
 
           //#region redirect
