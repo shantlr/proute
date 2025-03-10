@@ -3,9 +3,19 @@ type ExtractReturnType<T> = T extends (...args: any[]) => any
   ? NonNullable<Awaited<ReturnType<T>>>
   : T;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ExtractReturnTypeItem<T> = T extends (...args: any[]) => any
+  ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    NonNullable<Awaited<ReturnType<T>>> extends any[]
+    ? NonNullable<Awaited<ReturnType<T>>>[number]
+    : never
+  : never;
+
 export const identity = <T>(arg: T) => arg;
 
 export const returnType = <T>(arg: ExtractReturnType<T>) => arg;
+
+export const returnTypeItem = <T>(arg: ExtractReturnTypeItem<T>) => arg;
 
 export const returnArrayItemType = <T>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -23,6 +23,11 @@ export {
 } from './resources';
 export { example, redirect } from './utils/valibot';
 
-export { identity, returnType, combineReturnTypes } from './resources/helpers';
+export {
+  identity,
+  returnType,
+  returnTypeItem,
+  combineReturnTypes,
+} from './resources/helpers';
 
 export { createOpenapiJson } from './docs';
