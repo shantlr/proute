@@ -1,9 +1,10 @@
-import { RequestHandler } from 'express';
+import { Request, RequestHandler, Response } from 'express';
 import {
   AnyEndpointConf,
   AnyInputEndpointConf,
   AnyRouteConfig,
   EndpointConf,
+  EndpointConfFromInput,
   EndpointHandler,
   EndpointHandlerParam,
   ExtendEndpointConfHandlerParams,
@@ -12,12 +13,14 @@ import { GenericSchema, InferOutput, parse } from 'valibot';
 import { createResponseSchemaMapper } from '../resources';
 import {
   AnyHandlerExtraParam,
+  AnyMiddleware,
   AnyMiddlewareFn,
   Middleware,
   MiddlewareFn,
 } from '../middleware/types';
 import { AnyEndpointResponses, EndpointResponseInput } from '../types';
 import { MergeResponse, mergeResponses } from './merge-responses';
+import { EmptyObject } from '../ts-utils';
 
 export const isRouteEndpointModule = (
   module: unknown,
@@ -50,15 +53,13 @@ type ExtensibleEndpointConf<Conf extends AnyEndpointConf> = Conf & {
   middleware<
     HandlerExtraParams extends AnyHandlerExtraParam,
     ExtendedResponses extends AnyEndpointResponses,
-  >(param: {
-    responses: ExtendedResponses;
-    handler: MiddlewareFn<
+  >(
+    param: Middleware<
       EndpointHandlerParam<Conf>,
       HandlerExtraParams,
-      | MergeResponse<Conf['responses'], NoInfer<ExtendedResponses>>
-      | NoInfer<ExtendedResponses>
-    >;
-  }): Conf extends EndpointConf<
+      ExtendedResponses
+    >,
+  ): Conf extends EndpointConf<
     infer Route,
     infer Query,
     infer Body,
@@ -77,6 +78,83 @@ type ExtensibleEndpointConf<Conf extends AnyEndpointConf> = Conf & {
     : ExtensibleEndpointConf<AnyEndpointConf>;
 };
 
+interface EndpointConfFactory<
+  HandlerExtraParams extends AnyHandlerExtraParam,
+  ExtraResponses extends AnyEndpointResponses,
+> {
+  <Route extends AnyRouteConfig, Conf extends AnyInputEndpointConf<Route>>(
+    route: Route,
+    conf: Conf,
+  ): ExtensibleEndpointConf<
+    EndpointConfFromInput<
+      Route,
+      Conf,
+      HandlerExtraParams & {
+        params: InferOutput<Route['params']>;
+        body: Conf['body'] extends GenericSchema
+          ? InferOutput<Conf['body']>
+          : never;
+        query: Conf['query'] extends GenericSchema
+          ? InferOutput<Conf['query']>
+          : never;
+      },
+      ExtraResponses
+    >
+  >;
+
+  /**
+   * Same as `endpointConfig(...)`
+   */
+  config<
+    Route extends AnyRouteConfig,
+    Conf extends AnyInputEndpointConf<Route>,
+  >(
+    route: Route,
+    conf: Conf,
+  ): ExtensibleEndpointConf<
+    EndpointConfFromInput<
+      Route,
+      Conf,
+      HandlerExtraParams & {
+        params: InferOutput<Route['params']>;
+        body: Conf['body'] extends GenericSchema
+          ? InferOutput<Conf['body']>
+          : never;
+        query: Conf['query'] extends GenericSchema
+          ? InferOutput<Conf['query']>
+          : never;
+      },
+      ExtraResponses
+    >
+  >;
+
+  /**
+   * Apply middleware before parsing the request (params, body, query)
+   */
+  pre<
+    PreExtraParams extends AnyHandlerExtraParam,
+    PreExtendedResponses extends AnyEndpointResponses,
+  >(
+    middleware:
+      | Middleware<
+          { req: Request; res: Response } & HandlerExtraParams,
+          PreExtraParams,
+          PreExtendedResponses
+        >
+      | MiddlewareFn<
+          { req: Request; res: Response } & HandlerExtraParams,
+          PreExtraParams,
+          PreExtendedResponses
+        >,
+  ): EndpointConfFactory<
+    HandlerExtraParams & PreExtraParams,
+    MergeResponse<ExtraResponses, PreExtendedResponses>
+  >;
+}
+
+/**
+ * Is a response like object
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const isResponse = (value: unknown): value is EndpointResponseInput<any> => {
   if (
@@ -136,52 +214,84 @@ export const baseEndpointConf = <Conf extends AnyEndpointConf>(
   return r;
 };
 
+const createEndpointConf = <
+  HandlerExtraParams extends AnyHandlerExtraParam = EmptyObject,
+  ExtendedResponses extends AnyEndpointResponses = EmptyObject,
+>(
+  preMiddlewares: AnyMiddleware[] = [],
+) => {
+  const endpointConf: EndpointConfFactory<
+    HandlerExtraParams,
+    ExtendedResponses
+  > = (route, conf) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let res: ExtensibleEndpointConf<any> = baseEndpointConf({
+      route,
+      ...conf,
+      get middlewares() {
+        return [];
+      },
+    });
+
+    if (preMiddlewares?.length) {
+      preMiddlewares.forEach((mdw) => {
+        res = res.middleware(mdw);
+      });
+    }
+
+    return res.middleware(function prouteInternalParseRouteMdw({
+      req,
+    }: {
+      req: Request;
+    }) {
+      return {
+        extraParam: {
+          query: conf.query
+            ? parseDebug(conf.query, req.query, (err) => {
+                console.warn(
+                  `[proute] '${route?.expressPath}': query validation failed: ${err}`,
+                );
+              })
+            : {},
+          body: conf.body
+            ? parseDebug(conf.body, req.body, (err) => {
+                console.warn(
+                  `[proute] '${route?.expressPath}': body validation failed: ${err}`,
+                );
+              })
+            : {},
+          params: parseDebug(route.params, req.params, (err) => {
+            console.warn(
+              `[proute] '${route?.expressPath}': params validation failed: ${err}`,
+            );
+          }),
+        },
+      };
+    });
+  };
+
+  endpointConf.config = (...args) => endpointConf(...args);
+
+  endpointConf.pre = (mdw) => {
+    if (typeof mdw === 'function') {
+      return createEndpointConf([
+        ...preMiddlewares,
+        {
+          responses: {},
+          handler: mdw,
+        },
+      ]);
+    }
+    return createEndpointConf([...preMiddlewares, mdw]);
+  };
+
+  return endpointConf;
+};
+
 /**
  * Create endpoint configuration
  */
-export const endpointConf = <
-  Route extends AnyRouteConfig,
-  Conf extends AnyInputEndpointConf<Route>,
->(
-  route: Route,
-  conf: Conf,
-) => {
-  return baseEndpointConf({
-    route,
-    ...conf,
-    get middlewares() {
-      return [];
-    },
-  }).middleware(function prouteInternalParseRouteMdw({ req }) {
-    return {
-      extraParam: {
-        query: (conf.query
-          ? parseDebug(conf.query, req.query, (err) => {
-              console.warn(
-                `[proute] '${route?.expressPath}': query validation failed: ${err}`,
-              );
-            })
-          : {}) as Conf['query'] extends GenericSchema
-          ? InferOutput<Conf['query']>
-          : never,
-        body: (conf.body
-          ? parseDebug(conf.body, req.body, (err) => {
-              console.warn(
-                `[proute] '${route?.expressPath}': body validation failed: ${err}`,
-              );
-            })
-          : {}) as Conf['body'] extends GenericSchema
-          ? InferOutput<Conf['body']>
-          : never,
-        params: parseDebug(route.params, req.params, (err) => {
-          console.warn(
-            `[proute] '${route?.expressPath}': params validation failed: ${err}`,
-          );
-        }) as InferOutput<Route['params']>,
-      },
-    };
-  });
-};
+export const endpointConf = createEndpointConf([]);
 
 const parseDebug = <Schema extends GenericSchema>(
   schema: Schema,
@@ -282,6 +392,17 @@ export const createRoute = <Conf extends AnyEndpointConf>(module: {
             }
           }
           //#endregion
+
+          // if ('stream' in stepRes) {
+          //   if (stepRes.stream instanceof ReadableStream) {
+          //     Readable.fromWeb(stepRes.stream)
+          //     stepRes.stream.
+          //   }
+          //   stepRes.stream.pipe(
+          //     res.status(stepRes.status as unknown as number),
+          //   );
+          //   return;
+          // }
 
           //#region Map response data
           const mappedData = await responsesMapper[stepRes.status](

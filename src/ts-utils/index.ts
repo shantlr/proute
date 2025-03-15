@@ -13,3 +13,6 @@ type NonOptionalKeys<T> = {
 }[keyof T];
 
 export type PickNonOptional<T> = Pick<T, NonOptionalKeys<T>>;
+
+declare const emptyObjectSymbol: unique symbol;
+export type EmptyObject = { [emptyObjectSymbol]?: never };

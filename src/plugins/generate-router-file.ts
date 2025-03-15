@@ -121,10 +121,10 @@ export const generateRouterFile = async (
 <html>
   <head>
     <meta charset="utf-8">
-    <script type="module" src="https://unpkg.com/rapidoc/dist/rapidoc-min.js"></script>
   </head>
   <body>
-    <rapi-doc spec-url = "\${jsonEndpoint}"> </rapi-doc>
+    <redoc spec-url="\${jsonEndpoint}"></redoc>
+    <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"> </script>
   </body>
 </html>` + '`',
       );

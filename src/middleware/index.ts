@@ -54,22 +54,11 @@ export const makeCreateMiddleware = <RouterConfig extends AnyProuteConfig>(
   return createMiddleware;
 };
 
-// // eslint-disable-next-line @typescript-eslint/no-explicit-any
-// export function createMiddleware(...args: any[]) {
-//   if (args.length === 1 && typeof args[0] === 'function') {
-//     return {
-//       responses: {},
-//       handler: args[0],
-//     };
-//   }
-//   return {
-//     ...args[0],
-//     handler: args[1],
-//   };
-// }
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+const defaultCreateMiddleware = makeCreateMiddleware<{}>();
 
 export const convertExpressMiddleware = <
-  ExtraParam = Record<PropertyKey, never>,
+  ExtraParam extends AnyHandlerExtraParam = Record<PropertyKey, never>,
 >(
   expressMiddleware: RequestHandler,
   resolveExtraParams: (arg: {
@@ -77,7 +66,7 @@ export const convertExpressMiddleware = <
     res: Response;
   }) => ExtraParam = () => ({}) as ExtraParam,
 ) => {
-  return ({ req, res }: { req: Request; res: Response }) => {
+  const mdwFn = ({ req, res }: { req: Request; res: Response }) => {
     return new Promise<ExtraParam>((resolve, reject) => {
       const listener = () => {
         reject(new Error('Response closed before middleware finished'));
@@ -96,4 +85,5 @@ export const convertExpressMiddleware = <
       });
     });
   };
+  return defaultCreateMiddleware(mdwFn);
 };

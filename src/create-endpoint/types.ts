@@ -1,8 +1,9 @@
 import { GenericSchema } from 'valibot';
 import type { Request, Response } from 'express';
 import { AnyEndpointResponses, EndpointResponseInput } from '../types';
-import { MiddlewareFn } from '../middleware/types';
+import { AnyHandlerExtraParam, MiddlewareFn } from '../middleware/types';
 import { AnyOpenApiSecuritySchemes, OpenApiRouteSecurity } from '../docs/types';
+import { MergeResponse } from './merge-responses';
 
 export type RouteConfig<SecuritySchemes extends AnyOpenApiSecuritySchemes> = {
   expressPath: string;
@@ -33,6 +34,28 @@ export type EndpointConf<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   get middlewares(): MiddlewareFn<HandlerParams, any, any>[];
 };
+
+export type EndpointConfFromInput<
+  Route extends AnyRouteConfig,
+  ConfInput extends AnyInputEndpointConf<Route>,
+  ExtraParams extends AnyHandlerExtraParam,
+  ExtraResponses extends AnyEndpointResponses,
+> =
+  ConfInput extends InputEndpointConf<
+    infer Route,
+    infer QueryParams,
+    infer Body,
+    infer Responses
+  >
+    ? EndpointConf<
+        Route,
+        QueryParams,
+        Body,
+        MergeResponse<Responses, ExtraResponses>,
+        { req: Request; res: Response } & ExtraParams
+      >
+    : never;
+
 export type ExtendEndpointConfHandlerParams<
   Conf extends AnyEndpointConf,
   ExtraParams,
