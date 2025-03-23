@@ -66,7 +66,10 @@ export const createResource = <Input, Output extends GenericSchema>(arg: {
     },
   };
 };
-export const createResourceAsync = <Input, Output extends GenericSchema>(arg: {
+export const createResourceAsync = <
+  Input,
+  Output extends GenericSchema | GenericSchemaAsync,
+>(arg: {
   input: GenericSchema<Input> | ((arg: Input) => Input);
   output: Output;
   map: (input: Input) => Promise<InferOutput<Output>>;

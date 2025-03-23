@@ -222,6 +222,7 @@ export default { conf, handler };
 ```ts
 export const apiKeyAuthenticated = createMiddleware(
   {
+    // A middleware can extends possible responses
     responses: {
       401: picklist(['UNAUTHENTICATED', 'INVALID_SCHEME']),
     },
